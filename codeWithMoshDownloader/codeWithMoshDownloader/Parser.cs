@@ -26,7 +26,8 @@ namespace codeWithMoshDownloader
 
                 sectionObj.SectionName = section.SelectSingleNode(".//div[contains(@class, 'section-title')]").ChildNodes
                     .Where(x => x.Name == "#text" && x.InnerText.Trim().Length > 0)
-                    .Select(y => y.InnerText.Trim()).FirstOrDefault()?.Split(" (")[0].Trim().GetSafeFilename();
+                    .Select(y => y.InnerText.Trim()).FirstOrDefault()
+                    ?.Split(" (")[0].Trim().GetSafeFilename(); //replace with regex...
 
                 foreach (HtmlNode listItem in section.SelectNodes(".//li[contains(@class, 'section-item')]"))
                 {
@@ -87,6 +88,28 @@ namespace codeWithMoshDownloader
             htmlDocument.LoadHtml(pageContent);
 
             return htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'course-sidebar')]//h2").InnerText;
+        }
+
+        public string GetSectionNameFromLecture(string pageContent)
+        {
+            var htmlDocument = new HtmlDocument();
+            htmlDocument.LoadHtml(pageContent);
+
+            string lectureName = htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'lecture-content')]//h2[@class='section-title']")
+                .InnerText.Replace("&nbsp;", "").Trim();
+
+            IEnumerable<HtmlNode> lectureListNode = htmlDocument.DocumentNode.SelectNodes("//li[contains(@class, 'section-item')]");
+            // NO NO WTF COURSE-SECTION -> ALL LI ELEMENTS -> CHECK ALL LECTURE-NAMES -> IF MATCH TAKE COURSE-SECTION NODE AND EXTRACT SECTION NAME
+            HtmlNode q = (from node in lectureListNode
+                from descendant in node.Descendants()
+                where descendant.Name == "#text"
+                where descendant.InnerText.Split(" (")[0].Trim() == lectureName
+                select descendant).FirstOrDefault();
+
+            var e = q.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode;
+
+            //var t = lectureName.SelectSingleNode(".//div[@class='section-title]").InnerText;
+            return "";
         }
     }
 }

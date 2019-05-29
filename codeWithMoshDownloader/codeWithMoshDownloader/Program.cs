@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
 using static codeWithMoshDownloader.Helpers;
@@ -13,6 +14,8 @@ namespace codeWithMoshDownloader
     {
         private static async Task Main(string[] args)
         {
+            var isLecture = false;
+
             if (args.Length == 0)
             {
                 Help();
@@ -38,6 +41,11 @@ namespace codeWithMoshDownloader
 
             arguments.Url = new Uri(args.Last());
 
+            if (Regex.IsMatch(arguments.Url.ToString(), @"\/courses\/\d+\/lectures\/\d+"))
+            {
+                isLecture = true;
+            }
+
             if (!File.Exists(arguments.CookiesPath))
             {
                 Console.WriteLine("Error: Cookies file not found");
@@ -55,15 +63,34 @@ namespace codeWithMoshDownloader
             Console.WriteLine("Grabbing course");
             string courseHtml = await client.Get(arguments.Url.AbsolutePath);
 
+            if (isLecture)
+            {
+                await DownloadLecture(courseHtml, client, arguments);
+            }
+            else
+            {
+                await DownloadPlaylist(courseHtml, client, arguments);
+            }
+        }
+
+        private static async Task DownloadPlaylist(string playListHtml, SiteClient client, Arguments arguments)
+        {
             var pageParser = new Parser();
-            string courseName = pageParser.GetCourseName(courseHtml);
-            List<Section> playlistItems = pageParser.GetPlaylistItems(courseHtml);
+            string courseName = pageParser.GetCourseName(playListHtml);
+            List<Section> playlistItems = pageParser.GetPlaylistItems(playListHtml);
 
             int total = CountListOfLists(playlistItems);
             Console.WriteLine($"{courseName} - {total} items");
 
             var downloader = new Downloader(client, courseName);
             await downloader.DownloadPlaylist(playlistItems, arguments.Rename);
+        }
+
+        private static async Task DownloadLecture(string lectureHtml, SiteClient client, Arguments arguments)
+        {
+            var pageParser = new Parser();
+            string courseName = pageParser.GetCourseName(lectureHtml);
+            string sectionName = pageParser.GetSectionNameFromLecture(lectureHtml);
         }
 
         private static void Help()

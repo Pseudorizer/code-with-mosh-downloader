@@ -23,7 +23,7 @@ namespace codeWithMoshDownloader
                 BaseAddress = baseUri
             };
 
-            _httpClient.DefaultRequestHeaders.Add("Host", baseUri.Host);
+            _httpClient.DefaultRequestHeaders.Add("Host", baseUri.Host); //should move this out of constructor
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:59.0) Gecko/20100101 Firefox/59.0");
             _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
             _httpClient.DefaultRequestHeaders.Add("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
@@ -39,10 +39,15 @@ namespace codeWithMoshDownloader
 
         public async Task<string> Get(string url)
         {
-            HttpResponseMessage getResponseMessage = await _httpClient.GetAsync(url);
-            Stream getResponseStream = await getResponseMessage.Content.ReadAsStreamAsync();
+            string html;
 
-            return await DecompressGZipStream(getResponseStream);
+            using (HttpResponseMessage getResponseMessage = await _httpClient.GetAsync(url))
+            {
+                Stream getResponseStream = await getResponseMessage.Content.ReadAsStreamAsync();
+                html = await DecompressGZipStream(getResponseStream);
+            }
+
+            return html;
         }
 
         private static async Task<string> DecompressGZipStream(Stream stream)

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
 using static codeWithMoshDownloader.Helpers;
@@ -45,13 +45,18 @@ namespace codeWithMoshDownloader
                     string lectureHtml = await _siteClient.Get(lectureUrl);
                     Lecture lecture = await _lectureParser.GetLectureLinks(lectureHtml);
 
-                    await DownloadLecture(lecture, section.SectionName, index, rename);
+                    await DownloadLectureFiles(lecture, section.SectionName, index, rename);
                     playlistDownloadCounter++;
                 }
             }
         }
 
-        public async Task DownloadLecture(Lecture lecture, string sectionName, int index, bool rename)
+        public async Task DownloadLecture(string lectureHtml, bool rename)
+        {
+            Lecture lecture = await _lectureParser.GetLectureLinks(lectureHtml);
+        }
+
+        private async Task DownloadLectureFiles(Lecture lecture, string sectionName, int index, bool rename) //should break up
         {
             if (lecture.VideoJson?["media"] != null)
             {
@@ -101,6 +106,7 @@ namespace codeWithMoshDownloader
                     using (var videoWebClient = new WebClient())
                     {
                         videoWebClient.DownloadProgressChanged += DownloadProgressChangedHandler;
+                        videoWebClient.DownloadFileCompleted += DownloadFileCompletedHandler;
 
                         await videoWebClient.DownloadFileTaskAsync(new Uri(downloadInfo.Url), saveLocation);
                     }
@@ -158,8 +164,17 @@ namespace codeWithMoshDownloader
                 string downloaded = ((args.BytesReceived / 1024f) / 1024f).ToString("#0.##");
                 string total = ((args.TotalBytesToReceive / 1024f) / 1024f).ToString("#0.##");
 
-                Console.Write($"[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)\n");
+                Console.Write($"\r[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)");
             }
+        }
+
+        private static void DownloadFileCompletedHandler(object sender, AsyncCompletedEventArgs args)
+        {
+            int currentCursorPosition = Console.CursorTop;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, currentCursorPosition);
+            Console.Write("\r[download] Download complete\n");
         }
     }
 }

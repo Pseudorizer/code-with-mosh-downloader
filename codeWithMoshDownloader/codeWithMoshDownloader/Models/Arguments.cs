@@ -8,6 +8,10 @@ namespace codeWithMoshDownloader.Models
 
         public string CookiesPath { get; set; }
 
+        public int StartingPosition { get; set; }
+
         public Uri Url { get; set; }
+
+        public Quality QualitySetting { get; set; } = Quality.Hd;
     }
 }

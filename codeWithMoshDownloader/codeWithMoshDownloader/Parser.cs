@@ -1,112 +1,196 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
 using HtmlAgilityPack;
-using Newtonsoft.Json.Linq;
 using static codeWithMoshDownloader.Helpers;
 
 namespace codeWithMoshDownloader
 {
     public class Parser
     {
-        public List<Section> GetPlaylistItems(string pageContent)
+        private readonly HtmlDocument _htmlDocument = new HtmlDocument();
+
+        public List<LecturePage> GetPlaylistItems(string pageContent)
         {
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(pageContent);
+            _htmlDocument.LoadHtml(pageContent);
 
-            HtmlNodeCollection sections = htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'course-section')]");
+            HtmlNodeCollection sections = _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'course-section')]");
 
-            List<Section> sectionList = new List<Section>();
+            var lectureList = new List<LecturePage>();
 
-            foreach (HtmlNode section in sections)
+            foreach (HtmlNode section in sections) // some crazy linq gets recommended here
             {
-                var sectionObj = new Section();
-
-                sectionObj.SectionName = section.SelectSingleNode(".//div[contains(@class, 'section-title')]").ChildNodes
+                string sectionName = section.SelectSingleNode(".//div[contains(@class, 'section-title')]").ChildNodes
                     .Where(x => x.Name == "#text" && x.InnerText.Trim().Length > 0)
                     .Select(y => y.InnerText.Trim()).FirstOrDefault()
                     ?.Split(" (")[0].Trim().GetSafeFilename(); //replace with regex...
 
                 foreach (HtmlNode listItem in section.SelectNodes(".//li[contains(@class, 'section-item')]"))
                 {
-                    string url = listItem.SelectSingleNode(".//a[contains(@class, 'item')]").Attributes["href"].Value;
-                    sectionObj.UrlList.Add(url);
+                    lectureList.Add(new LecturePage
+                    {
+                        SectionName = sectionName,
+                        Url = listItem.SelectSingleNode(".//a[contains(@class, 'item')]").Attributes["href"]
+                            .Value
+                    });
                 }
-
-                sectionList.Add(sectionObj);
             }
 
-            return sectionList;
+            return lectureList;
         }
 
-        public async Task<Lecture> GetLectureLinks(string pageContent)
+        public Lecture GetLectureLinks(string pageContent)
         {
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(pageContent);
+            _htmlDocument.LoadHtml(pageContent);
 
             var lecture = new Lecture();
 
-            HtmlNode idNode =
-                htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'attachment-wistia-player')]");
-
-            if (idNode != null)
+            if (TryGetNode(_htmlDocument, "//div[contains(@class, 'attachment-wistia-player')]", out HtmlNode idNode))
             {
-                string id = idNode.Attributes["data-wistia-id"].Value;
-
-                Console.WriteLine($"[Wistia] {id}: Grabbing JSON");
-
-                lecture.VideoJson = JObject.Parse(await SimpleGet($"https://fast.wistia.net/embed/medias/{id}.json"));
+                lecture.WistiaId = idNode.Attributes["data-wistia-id"].Value;
+                Console.WriteLine($"[Wistia] {lecture.WistiaId}: Grabbing JSON");
             }
 
-            HtmlNodeCollection attachments =
-                htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'lecture-attachment')]");
+            if (TryGetNode(_htmlDocument, "//div[@class='video-options']//a", out HtmlNode embeddedVideoNode))
+            {
+                lecture.Extras.Add(new LectureExtra
+                {
+                    Url = embeddedVideoNode.Attributes["href"].Value,
+                    FileName = embeddedVideoNode.Attributes["data-x-origin-download-name"].Value
+                });
+            }
 
-            if (attachments.Count == 1 && idNode != null) return lecture;
+            lecture.TextAreas.AddRange(GetTextAreas());
+
+            HtmlNodeCollection attachments =
+                _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'lecture-attachment')]");
 
             foreach (HtmlNode attachmentNode in attachments.Where(x => !x.HasClass("lecture-attachment-type-video")))
             {
-                var extra = new Lecture.Extra();
+                lecture.Extras.AddRange(GetEmbeddedExtras(attachmentNode, lecture));
 
-                HtmlNode downloadNode = attachmentNode.SelectSingleNode(".//a[contains(@class, 'download')]");
-
-                if (downloadNode == null) continue;
-
-                extra.Url = downloadNode.Attributes["href"].Value;
-                extra.FileName = downloadNode.Attributes["data-x-origin-download-name"].Value.GetSafeFilename();
-
-                lecture.Extras.Add(extra);
+                lecture.Extras.AddRange(GetLectureExtras(attachmentNode, lecture));
             }
 
             return lecture;
         }
 
+        private IEnumerable<LectureExtra> GetEmbeddedExtras(HtmlNode attachmentNode, Lecture lecture)
+        {
+            HtmlNodeCollection embedNodes = attachmentNode.SelectNodes(
+                "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div");
+
+            foreach (HtmlNode embedNode in embedNodes)
+            {
+                var embedExtra = new LectureExtra();
+
+                string id = embedNode.Attributes["data-pdfviewer-id"].Value;
+
+                embedExtra.Url = "https://www.filepicker.io/api/file/" + id;
+
+                if (TryGetNode(_htmlDocument, "//div[@class='row attachment-pdf-embed']/div/div[@class='label']",
+                    out HtmlNode node))
+                {
+                    embedExtra.FileName = node.InnerText.Trim().GetSafeFilename();
+                }
+
+                if (lecture.Extras.Any(x => x.Url == embedExtra.Url)) continue;
+
+                yield return embedExtra;
+            }
+        }
+
+        private IEnumerable<TextArea> GetTextAreas()
+        {
+            if (!TryGetNodes(_htmlDocument, "//div[@class='lecture-text-container']",
+                out HtmlNodeCollection textNodes)) yield break;
+
+            foreach (HtmlNode textNode in textNodes)
+            {
+                if (!TryGetNode(_htmlDocument, "//h2[@id='lecture_heading']", out HtmlNode headerNode)) continue;
+
+                var textArea = new TextArea
+                {
+                    FileName = headerNode.InnerText.Trim()
+                                   .Replace("&nbsp;", "")
+                                   .Trim()
+                               + ".html",
+                    Html = textNode.InnerHtml
+                };
+
+                yield return textArea;
+            }
+        }
+
+        private static IEnumerable<LectureExtra> GetLectureExtras(HtmlNode attachmentNode, Lecture lecture)
+        {
+            HtmlNodeCollection downloadNodes = attachmentNode.SelectNodes(".//a[contains(@class, 'download')]");
+
+            foreach (HtmlNode downloadNode in downloadNodes)
+            {
+                var extra = new LectureExtra
+                {
+                    Url = downloadNode.Attributes["href"].Value,
+                    FileName = downloadNode.Attributes["data-x-origin-download-name"].Value.Trim().GetSafeFilename()
+                };
+
+                if (lecture.Extras.Any(x => x.Url == extra.Url)) continue;
+
+                yield return extra;
+            }
+        }
+
         public string GetCourseName(string pageContent)
         {
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(pageContent);
+            _htmlDocument.LoadHtml(pageContent);
 
-            return htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'course-sidebar')]//h2").InnerText;
+            return _htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'course-sidebar')]//h2").InnerText;
         }
 
         public string GetSectionNameFromLecture(string pageContent)
         {
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(pageContent);
+            _htmlDocument.LoadHtml(pageContent);
 
-            string lectureName = htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'lecture-content')]//h2[@class='section-title']")
-                .InnerText.Replace("&nbsp;", "").Trim();
+            string lectureName = _htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'lecture-content')]//h2[@class='section-title']")
+                .InnerText
+                .Replace("&nbsp;", "")
+                .Trim();
 
-            IEnumerable<HtmlNode> lectureListNode = htmlDocument.DocumentNode.SelectNodes("//li[contains(@class, 'section-item')]");
+            HtmlNodeCollection sectionNodeList = _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'course-section')]");
+
+            var foundLecture = false;
+
+            var sectionName = "Unknown";
+
+            foreach (HtmlNode sectionNode in sectionNodeList) // needs work, can be extracted
+            {
+                foreach (HtmlNode listItemNode in sectionNode.SelectNodes("./ul/li"))
+                {
+                    string title = listItemNode.SelectSingleNode("./a/div/span[@class='lecture-name']")
+                        .InnerText
+                        .Trim()
+                        .Split("\n")[0];
+
+                    if (title != lectureName) continue;
+
+                    foundLecture = true;
+                    break;
+                }
+
+                if (foundLecture)
+                {
+                    sectionName = sectionNode.SelectSingleNode("./div")
+                        .InnerText
+                        .Replace("&nbsp;", "")
+                        .Trim();
+                    break;
+                }
+            }
+
             // NO NO WTF COURSE-SECTION -> ALL LI ELEMENTS -> CHECK ALL LECTURE-NAMES -> IF MATCH TAKE COURSE-SECTION NODE AND EXTRACT SECTION NAME
-            HtmlNode q = (from node in lectureListNode
-                from descendant in node.Descendants()
-                where descendant.Name == "#text"
-                where descendant.InnerText.Split(" (")[0].Trim() == lectureName
-                select descendant).FirstOrDefault();
 
-            var e = q.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode;
+
 
             //var t = lectureName.SelectSingleNode(".//div[@class='section-title]").InnerText;
             return "";

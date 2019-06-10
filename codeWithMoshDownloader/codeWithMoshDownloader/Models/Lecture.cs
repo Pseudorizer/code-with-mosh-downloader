@@ -5,13 +5,10 @@ namespace codeWithMoshDownloader.Models
 {
     public class Lecture
     {
-        public JObject VideoJson { get; set; }
-        public List<Extra> Extras { get; } = new List<Extra>();
+        public string WistiaId { get; set; }
 
-        public class Extra
-        {
-            public string Url { get; set; }
-            public string FileName { get; set; }
-        }
+        public List<TextArea> TextAreas { get; } = new List<TextArea>();
+
+        public List<LectureExtra> Extras { get; } = new List<LectureExtra>();
     }
 }

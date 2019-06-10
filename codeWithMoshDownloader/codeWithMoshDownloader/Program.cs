@@ -36,6 +36,18 @@ namespace codeWithMoshDownloader
                     case "-c" when index + 1 < args.Length:
                         arguments.CookiesPath = args[index + 1];
                         break;
+                    case "-q" when index + 1 < args.Length:
+                        if (int.TryParse(args[index + 1], out int x))
+                        {
+                            arguments.QualitySetting = (Quality)x;
+                        }
+                        break;
+                    case "-s" when index + 1 < args.Length:
+                        if (int.TryParse(args[index + 1], out int y))
+                        {
+                            arguments.StartingPosition = y < 0 ? 0 : y;
+                        }
+                        break;
                 }
             }
 
@@ -77,13 +89,13 @@ namespace codeWithMoshDownloader
         {
             var pageParser = new Parser();
             string courseName = pageParser.GetCourseName(playListHtml);
-            List<Section> playlistItems = pageParser.GetPlaylistItems(playListHtml);
+            List<LecturePage> playlistItems = pageParser.GetPlaylistItems(playListHtml);
 
             int total = CountListOfLists(playlistItems);
             Console.WriteLine($"{courseName} - {total} items");
 
             var downloader = new Downloader(client, courseName);
-            await downloader.DownloadPlaylist(playlistItems, arguments.Rename);
+            await downloader.DownloadPlaylist(playlistItems, arguments);
         }
 
         private static async Task DownloadLecture(string lectureHtml, SiteClient client, Arguments arguments)

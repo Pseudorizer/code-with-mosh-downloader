@@ -159,10 +159,11 @@ namespace codeWithMoshDownloader
 
             HtmlNodeCollection sectionNodeList = _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'course-section')]");
 
-            var foundLecture = false;
+            return SearchForSectionNameFromLecture(sectionNodeList, lectureName);
+        }
 
-            var sectionName = "Unknown";
-
+        private static string SearchForSectionNameFromLecture(HtmlNodeCollection sectionNodeList, string lectureName)
+        {
             foreach (HtmlNode sectionNode in sectionNodeList) // needs work, can be extracted
             {
                 foreach (HtmlNode listItemNode in sectionNode.SelectNodes("./ul/li"))
@@ -174,26 +175,15 @@ namespace codeWithMoshDownloader
 
                     if (title != lectureName) continue;
 
-                    foundLecture = true;
-                    break;
-                }
-
-                if (foundLecture)
-                {
-                    sectionName = sectionNode.SelectSingleNode("./div")
+                    return sectionNode.SelectSingleNode("./div")
                         .InnerText
                         .Replace("&nbsp;", "")
+                        .Split(" (")[0]
                         .Trim();
-                    break;
                 }
             }
 
-            // NO NO WTF COURSE-SECTION -> ALL LI ELEMENTS -> CHECK ALL LECTURE-NAMES -> IF MATCH TAKE COURSE-SECTION NODE AND EXTRACT SECTION NAME
-
-
-
-            //var t = lectureName.SelectSingleNode(".//div[@class='section-title]").InnerText;
-            return "";
+            return "Unknown";
         }
     }
 }

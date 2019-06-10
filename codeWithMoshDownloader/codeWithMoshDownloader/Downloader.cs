@@ -24,7 +24,6 @@ namespace codeWithMoshDownloader
         private readonly string _courseName;
         private int _downloadCounter;
         private bool _rename;
-        private int _index = 0;
         private Quality _quality;
 
         public Downloader(SiteClient siteClient, string courseName)
@@ -35,33 +34,42 @@ namespace codeWithMoshDownloader
 
         public async Task DownloadPlaylist(List<LecturePage> lecturePageList, Arguments arguments)
         {
+            if (lecturePageList == null || arguments == null || lecturePageList.Count == 0)
+            {
+                return;
+            }
+
             _rename = arguments.Rename;
             _quality = arguments.QualitySetting;
 
-            int playlistTotal = CountListOfLists(lecturePageList);
-            var playlistDownloadCounter = 1;
+            int playlistTotal = lecturePageList.Count;
             var sectionCounter = 1;
+            string currentSection = lecturePageList[0].SectionName;
 
-            foreach (LecturePage lecturePage in lecturePageList)
+            for (int index = arguments.StartingPosition; index < lecturePageList.Count; index++)
             {
-                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName, $"{sectionCounter} - {lecturePage.SectionName}");
+                LecturePage lecturePage = lecturePageList[index];
+
+                if (currentSection != lecturePage.SectionName)
+                {
+                    currentSection = lecturePage.SectionName;
+                    sectionCounter++;
+                }
+
+                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName,
+                    $"{sectionCounter} - {lecturePage.SectionName}");
 
                 if (!Directory.Exists(sectionPath))
                 {
                     Directory.CreateDirectory(sectionPath);
                 }
-                Console.WriteLine($"\n[download] Downloading {playlistDownloadCounter} of {playlistTotal}");
+
+                Console.WriteLine($"\n[download] Downloading {index + 1} of {playlistTotal}");
 
                 string lectureHtml = await _siteClient.Get(lecturePage.Url);
                 Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
 
                 //await DownloadLectureFiles(lecture, sectionPath);
-                playlistDownloadCounter++;
-                _index++;
-
-
-                sectionCounter++;
-                _index = 0;
             }
         }
 
@@ -70,7 +78,47 @@ namespace codeWithMoshDownloader
             Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
         }
 
-        /*private async Task DownloadLectureFiles(Lecture lecture, string sectionPath) //should break up
+        private async Task DownloadLectureFilesNew(Lecture lecture, string sectionPath)
+        {
+            if (lecture.WistiaId != null || lecture.WistiaId != "")
+            {
+                var t = await DownloadWistiaVideo(lecture.WistiaId, sectionPath);
+            }
+        }
+
+        private async Task<bool> DownloadWistiaVideo(string wistiaId, string sectionPath)
+        {
+            string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");
+
+            JObject wistiaJObject = JObject.Parse(wistiaJson);
+
+            if (wistiaJObject?["media"] == null) return false;
+
+            var downloadInfo = new DownloadInfo
+            {
+                FileName = wistiaJObject["media"]["name"].ToString()
+            };
+
+            Quality localQuality = _quality;
+
+            switch (localQuality)
+            {
+                case Quality.Sd:
+                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "md_mp4_video", "540p");
+                    break;
+                case Quality.Hd:
+                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "hd_mp4_video", "720p");
+                    break;
+                case Quality.FullHd:
+                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "hd_mp4_video", "1080p");
+                    break;
+                case Quality.Original:
+                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "original", "Original file");
+                    break;
+            }
+        }
+
+        private async Task DownloadLectureFiles(Lecture lecture, string sectionPath) //should break up
         {
             if (lecture.WistiaId?["media"] != null)
             {
@@ -261,7 +309,7 @@ namespace codeWithMoshDownloader
             }
 
             await Task.Delay(700);
-        }*/
+        }
 
         private static string ParseUrlByQuality(JObject json, string type, string resolution)
         {

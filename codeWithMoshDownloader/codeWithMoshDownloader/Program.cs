@@ -45,7 +45,7 @@ namespace codeWithMoshDownloader
                     case "-s" when index + 1 < args.Length:
                         if (int.TryParse(args[index + 1], out int y))
                         {
-                            arguments.StartingPosition = y < 0 ? 0 : y;
+                            arguments.StartingPosition = (y < 0 || y - 1 < 0) ? 0 : y - 1;
                         }
                         break;
                 }

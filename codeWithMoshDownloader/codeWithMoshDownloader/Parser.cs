@@ -54,11 +54,11 @@ namespace codeWithMoshDownloader
 
             if (TryGetNode(_htmlDocument, "//div[@class='video-options']//a", out HtmlNode embeddedVideoNode))
             {
-                lecture.Extras.Add(new LectureExtra
+                lecture.EmbeddedVideo = new EmbeddedVideo
                 {
                     Url = embeddedVideoNode.Attributes["href"].Value,
                     FileName = embeddedVideoNode.Attributes["data-x-origin-download-name"].Value
-                });
+                };
             }
 
             lecture.TextAreas.AddRange(GetTextAreas());

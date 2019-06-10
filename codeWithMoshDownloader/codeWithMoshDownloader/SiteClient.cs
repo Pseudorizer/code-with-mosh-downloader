@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace codeWithMoshDownloader
 {
@@ -43,8 +42,10 @@ namespace codeWithMoshDownloader
 
             using (HttpResponseMessage getResponseMessage = await _httpClient.GetAsync(url))
             {
-                Stream getResponseStream = await getResponseMessage.Content.ReadAsStreamAsync();
-                html = await DecompressGZipStream(getResponseStream);
+                using (Stream getResponseStream = await getResponseMessage.Content.ReadAsStreamAsync())
+                {
+                    html = await DecompressGZipStream(getResponseStream);
+                }
             }
 
             return html;

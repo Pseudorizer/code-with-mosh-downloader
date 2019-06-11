@@ -1,11 +1,8 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Xml.XPath;
-using codeWithMoshDownloader.Models;
 using HtmlAgilityPack;
+using Newtonsoft.Json.Linq;
 
 namespace codeWithMoshDownloader
 {
@@ -26,7 +23,6 @@ namespace codeWithMoshDownloader
 
         public static string GetSafeFilename(this string filename)
         {
-            var t = string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
             return string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
         }
 
@@ -106,16 +102,8 @@ namespace codeWithMoshDownloader
             return node != null;
         }
 
-        public static int CountListOfLists(List<LecturePage> list)
-        {
-            var total = 0;
+        public static string Repeat(this char value, int amount) => new string(value, amount);
 
-            foreach (LecturePage i in list)
-            {
-                //total += i.UrlList.Count;
-            }
-
-            return total;
-        }
+        public static T TryGetJsonKey<T>(JToken json, string key, T defaultReturn = default) => json[key] != null ? json[key].Value<T>() : defaultReturn;
     }
 }

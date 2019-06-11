@@ -94,8 +94,7 @@ namespace codeWithMoshDownloader
             string courseName = pageParser.GetCourseName(playListHtml);
             List<LecturePage> playlistItems = pageParser.GetPlaylistItems(playListHtml);
 
-            int total = CountListOfLists(playlistItems);
-            Console.WriteLine($"{courseName} - {total} items");
+            Console.WriteLine($"{courseName} - {playlistItems.Count} items");
 
             var downloader = new WistiaDownloader(client, courseName);
             await downloader.Download(playlistItems, arguments);

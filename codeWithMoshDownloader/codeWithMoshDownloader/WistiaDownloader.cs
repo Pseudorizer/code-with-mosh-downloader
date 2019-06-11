@@ -12,7 +12,7 @@ using static codeWithMoshDownloader.Helpers;
 
 namespace codeWithMoshDownloader
 {
-    public class Downloader //THIS CLASS IS FUCKING DISGUSTING, WHAT A POS
+    public class WistiaDownloader //THIS CLASS IS FUCKING DISGUSTING, WHAT A POS
     /*
      * So much crap, the downloadlecture method should be split up in so many locations to be re usable
      * So much repetition in it it's horrible
@@ -24,23 +24,25 @@ namespace codeWithMoshDownloader
         private readonly string _courseName;
         private int _downloadCounter;
         private bool _rename;
+        private bool _checkFormat;
         private Quality _quality;
 
-        public Downloader(SiteClient siteClient, string courseName)
+        public WistiaDownloader(SiteClient siteClient, string courseName)
         {
             _siteClient = siteClient;
             _courseName = courseName.GetSafeFilename();
         }
 
-        public async Task DownloadPlaylist(List<LecturePage> lecturePageList, Arguments arguments)
+        public async Task<bool> Download(List<LecturePage> lecturePageList, Arguments arguments)
         {
             if (lecturePageList == null || arguments == null || lecturePageList.Count == 0)
             {
-                return;
+                return false;
             }
 
             _rename = arguments.Rename;
             _quality = arguments.QualitySetting;
+            _checkFormat = arguments.CheckFormats;
 
             int playlistTotal = lecturePageList.Count;
             var sectionCounter = 1;
@@ -69,13 +71,15 @@ namespace codeWithMoshDownloader
                 string lectureHtml = await _siteClient.Get(lecturePage.Url);
                 Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
 
-                //await DownloadLectureFiles(lecture, sectionPath);
+                await DownloadLectureFilesNew(lecture, sectionPath);
             }
+
+            return true;
         }
 
-        public async Task DownloadLecture(string lectureHtml)
+        public async Task Download(LecturePage lecturePage, Arguments arguments)
         {
-            Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
+            await Download(new List<LecturePage> {lecturePage}, arguments);
         }
 
         private async Task DownloadLectureFilesNew(Lecture lecture, string sectionPath)
@@ -90,7 +94,16 @@ namespace codeWithMoshDownloader
         {
             string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");
 
+
             JObject wistiaJObject = JObject.Parse(wistiaJson);
+
+            if (_checkFormat)
+            {
+                DisplayFormats(wistiaJObject);
+                return false;
+            }
+
+            var t = wistiaJObject.ToString();
 
             if (wistiaJObject?["media"] == null) return false;
 
@@ -116,9 +129,22 @@ namespace codeWithMoshDownloader
                     downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "original", "Original file");
                     break;
             }
+
+            return true;
         }
 
-        private async Task DownloadLectureFiles(Lecture lecture, string sectionPath) //should break up
+        private void DisplayFormats(JObject json)
+        {
+            JToken assets = json["media"]["assets"];
+
+            foreach (JToken asset in assets)
+            {
+                string type = asset["tye"].ToString() ?? "?";
+                string codec = asset["codec"].ToString() ?? "?";
+            }
+        }
+
+        /*private async Task DownloadLectureFiles(Lecture lecture, string sectionPath) //should break up
         {
             if (lecture.WistiaId?["media"] != null)
             {
@@ -309,7 +335,7 @@ namespace codeWithMoshDownloader
             }
 
             await Task.Delay(700);
-        }
+        }*/
 
         private static string ParseUrlByQuality(JObject json, string type, string resolution)
         {

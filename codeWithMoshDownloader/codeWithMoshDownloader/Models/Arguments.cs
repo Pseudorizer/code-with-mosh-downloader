@@ -6,6 +6,8 @@ namespace codeWithMoshDownloader.Models
     {
         public bool Rename { get; set; }
 
+        public bool CheckFormats { get; set; }
+
         public string CookiesPath { get; set; }
 
         public int StartingPosition { get; set; } = 0;

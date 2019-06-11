@@ -42,10 +42,13 @@ namespace codeWithMoshDownloader
                             arguments.QualitySetting = (Quality)x;
                         }
                         break;
+                    case "-Q":
+                        arguments.CheckFormats = true;
+                        break;
                     case "-s" when index + 1 < args.Length:
                         if (int.TryParse(args[index + 1], out int y))
                         {
-                            arguments.StartingPosition = (y < 0 || y - 1 < 0) ? 0 : y - 1;
+                            arguments.StartingPosition = y <= 0 ? 0 : y - 1;
                         }
                         break;
                 }
@@ -77,7 +80,7 @@ namespace codeWithMoshDownloader
 
             if (isLecture)
             {
-                await DownloadLecture(courseHtml, client, arguments);
+                await DownloadLecture(arguments.Url.AbsolutePath, courseHtml, client, arguments);
             }
             else
             {
@@ -94,15 +97,24 @@ namespace codeWithMoshDownloader
             int total = CountListOfLists(playlistItems);
             Console.WriteLine($"{courseName} - {total} items");
 
-            var downloader = new Downloader(client, courseName);
-            await downloader.DownloadPlaylist(playlistItems, arguments);
+            var downloader = new WistiaDownloader(client, courseName);
+            await downloader.Download(playlistItems, arguments);
         }
 
-        private static async Task DownloadLecture(string lectureHtml, SiteClient client, Arguments arguments)
+        private static async Task DownloadLecture(string lecturePath, string pageHtml, SiteClient client, Arguments arguments)
         {
             var pageParser = new Parser();
-            string courseName = pageParser.GetCourseName(lectureHtml);
-            string sectionName = pageParser.GetSectionNameFromLecture(lectureHtml);
+            string courseName = pageParser.GetCourseName(pageHtml);
+            string sectionName = pageParser.GetSectionNameFromLecture(pageHtml);
+
+            var lecturePage = new LecturePage
+            {
+                SectionName = sectionName,
+                Url = lecturePath
+            };
+
+            var downloader = new WistiaDownloader(client, courseName);
+            await downloader.Download(lecturePage, arguments);
         }
 
         private static void Help()

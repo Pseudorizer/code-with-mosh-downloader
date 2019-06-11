@@ -102,7 +102,10 @@ namespace codeWithMoshDownloader
             return node != null;
         }
 
-        public static string Repeat(this char value, int amount) => new string(value, amount);
+        public static string AddChar(char value, int amount)
+        {
+            return new string(value, amount);
+        }
 
         public static T TryGetJsonKey<T>(JToken json, string key, T defaultReturn = default) => json[key] != null ? json[key].Value<T>() : defaultReturn;
     }

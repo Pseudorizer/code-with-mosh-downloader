@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ByteSizeLib;
 using codeWithMoshDownloader.Models;
@@ -135,23 +133,35 @@ namespace codeWithMoshDownloader
             return true;
         }
 
-        private void DisplayFormats(JObject json)
+        private static void DisplayFormats(JObject json)
         {
-            var t = json.ToString();
             var assets = ParseAssets(json).ToList().AsReadOnly();
-            Console.WriteLine("Format Name | Extension | Resolution | Other");
 
             int typeSpace = assets.Max(x => x.Type.Length) + 2;
             int extSpace = assets.Max(x => x.Extension.Length) + 2;
             int resolutionSpace = assets.Max(x => x.Resolution.Length) + 2;
+            int bitrateSpace = assets.Max(x => x.Bitrate.Length) + 2;
+            int containerSpace = assets.Max(x => x.Container.Length) + 12; // because of the container text
+            int codecSpace = assets.Max(x => x.Codec.Length) + 2;
 
-            foreach (Format format in assets)
+            foreach (Format format in assets.OrderBy(x => x.Type))
             {
-                string formatString =
-                        $"{format.Type}{' '.Repeat(typeSpace - format.Type.Length)} {format.Extension}{' '.Repeat(extSpace - format.Type.Length)} {format.Resolution}{' '.Repeat(resolutionSpace - format.Type.Length)} {format.Bitrate} {format.Container} Container {format.Codec} {format.Size}";
-
+                string formatString = // ty youtube-dl for the format!
+                        $"{AddSpaces(format.Type, typeSpace)}" +
+                        $"{AddSpaces(format.Extension, extSpace)}" +
+                        $"{AddSpaces(format.Resolution, resolutionSpace)}" +
+                        $"{AddSpaces(format.Bitrate, bitrateSpace)}" +
+                        $"{AddSpaces(format.Container + " Container", containerSpace)}" +
+                        $"{AddSpaces(format.Codec, codecSpace)}" +
+                        $"{format.Size}";
                 Console.WriteLine(formatString);
             }
+        }
+
+        private static string AddSpaces(string value, int max)
+        {
+            int spacesNeeded = max - value.Length;
+            return value += new string(' ', spacesNeeded);
         }
 
         private static IEnumerable<Format> ParseAssets(JObject json)
@@ -159,6 +169,19 @@ namespace codeWithMoshDownloader
             JToken assets = json["media"]["assets"];
 
             List<Format> formatList = new List<Format>();
+
+            var titles = new Format
+            {
+                Type = "Format Name",
+                Extension = "Extension",
+                Resolution = "Resolution",
+                Bitrate = "Bitrate",
+                Codec = "Codec",
+                Container = "Container",
+                Size = "Size"
+            };
+
+            formatList.Add(titles);
 
             foreach (JToken asset in assets)
             {

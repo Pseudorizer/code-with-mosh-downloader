@@ -86,6 +86,8 @@ namespace codeWithMoshDownloader
             }
         }
 
+        // a good idea might be to check if the wistia is "" before calling this method, i could have an overload for just embedded stuff
+        // and it would save a bit of time as it cuts out the get request and all the other checks and parsing
         private async Task<bool> DownloadWistiaVideo(string wistiaId, EmbeddedVideo embeddedVideo, string sectionPath)
         {
             string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");

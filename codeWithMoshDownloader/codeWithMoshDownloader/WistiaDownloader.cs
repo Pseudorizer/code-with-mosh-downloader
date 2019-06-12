@@ -23,7 +23,6 @@ namespace codeWithMoshDownloader
         private readonly SiteClient _siteClient;
         private readonly string _courseName;
         private int _downloadCounter;
-        private bool _rename;
         private bool _checkFormat;
         private string _quality;
         private int _currentItemIndex = 1;
@@ -41,7 +40,6 @@ namespace codeWithMoshDownloader
                 return false;
             }
 
-            _rename = arguments.Rename;
             _quality = arguments.QualitySetting;
             _checkFormat = arguments.CheckFormats;
 
@@ -85,16 +83,15 @@ namespace codeWithMoshDownloader
 
         private async Task DownloadLectureFilesNew(Lecture lecture, string sectionPath)
         {
-            if (lecture.WistiaId != null || lecture.WistiaId != "")
+            if (lecture.WistiaId != null)
             {
-                var t = await DownloadWistiaVideo(lecture.WistiaId, lecture.EmbeddedVideo.Url, sectionPath);
+                var t = await DownloadWistiaVideo(lecture.WistiaId, lecture.EmbeddedVideo, sectionPath);
             }
         }
 
-        private async Task<bool> DownloadWistiaVideo(string wistiaId, string embeddedVideoUrl, string sectionPath)
+        private async Task<bool> DownloadWistiaVideo(string wistiaId, EmbeddedVideo embeddedVideo, string sectionPath)
         {
             string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");
-
 
             JObject wistiaJObject = JObject.Parse(wistiaJson);
 
@@ -104,40 +101,31 @@ namespace codeWithMoshDownloader
                 return false;
             }
 
-            var t = wistiaJObject.ToString();
+            var downloadInfo = new DownloadInfo();
 
-            if (wistiaJObject["media"] == null) return false;
-
-            var downloadInfo = new DownloadInfo
+            if (TryGetJsonValueByJPath(wistiaJObject, "$.media.name", out string filename))
             {
-                FileName = wistiaJObject["media"]["name"].Value<string>().Trim()
-            };
+                downloadInfo.FileName = filename;
+            }
 
-            string qualityTemp = _quality;
-
-            if (VideoStreamFormats.TryGetFormat(wistiaJObject, qualityTemp, out VideoFormat format))
+            if (VideoStreamFormats.TryGetFormat(wistiaJObject, _quality, out VideoFormat format))
             {
                 downloadInfo.Url = format.Url;
                 downloadInfo.FileSize = long.Parse(format.Size);
             }
-            else if (qualityTemp != "original" && VideoStreamFormats.TryGetFormat(wistiaJObject, "original", out VideoFormat originalFormat))
+            else if (_quality != "original" && VideoStreamFormats.TryGetFormat(wistiaJObject, "original", out VideoFormat originalFormat))
             {
                 downloadInfo.Url = originalFormat.Url;
                 downloadInfo.FileSize = long.Parse(originalFormat.Size);
             }
-            else if (embeddedVideoUrl != null)
+            else if (embeddedVideo.Url != null && embeddedVideo.FileName != null)
             {
-                downloadInfo.Url = embeddedVideoUrl;
+                return await DownloadFile(embeddedVideo, sectionPath);
             }
             else
             {
                 Console.WriteLine("[download] video download failed, no valid links found");
                 return false;
-            }
-
-            if (downloadInfo.FileSize == null)
-            {
-                return await DownloadFile(downloadInfo.Url, downloadInfo.FileName, sectionPath);
             }
 
             return await DownloadFile(downloadInfo, sectionPath);
@@ -148,7 +136,7 @@ namespace codeWithMoshDownloader
             downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex);
             string filePath = Path.Combine(sectionPath, downloadInfo.FileName);
 
-            if (File.Exists(filePath) && !_rename)
+            if (File.Exists(filePath))
             {
                 long fileSize = new FileInfo(filePath).Length;
 
@@ -162,18 +150,18 @@ namespace codeWithMoshDownloader
             return await DownloadClient(downloadInfo.Url, filePath);
         }
 
-        private async Task<bool> DownloadFile(string url, string filename, string sectionPath)
+        private async Task<bool> DownloadFile(EmbeddedVideo embeddedVideo, string sectionPath)
         {
-            filename = AddIndex(filename, _currentItemIndex);
-            string filePath = Path.Combine(sectionPath, filename);
+            embeddedVideo.FileName = AddIndex(embeddedVideo.FileName, _currentItemIndex);
+            string filePath = Path.Combine(sectionPath, embeddedVideo.FileName);
 
-            if (File.Exists(filePath) && !_rename)
+            if (File.Exists(filePath))
             {
                 Console.WriteLine("[download] file already exists");
                 return true;
             }
 
-            return await DownloadClient(url, filePath);
+            return await DownloadClient(embeddedVideo.Url, filePath);
         }
 
         private async Task<bool> DownloadClient(string url, string filepath)
@@ -183,7 +171,7 @@ namespace codeWithMoshDownloader
                 var result = false;
                 webClient.DownloadProgressChanged += DownloadProgressChangedHandler;
 
-                webClient.DownloadDataCompleted += (sender, args) =>
+                webClient.DownloadFileCompleted += (sender, args) =>
                 {
                     int currentCursorPosition = Console.CursorTop;
                     Console.SetCursorPosition(0, Console.CursorTop);
@@ -201,7 +189,7 @@ namespace codeWithMoshDownloader
                     }
                     else
                     {
-                        Console.Write("\r[download] something else\n");
+                        Console.Write("\r[download] Download cancelled\n");
                     }
                 };
 
@@ -404,13 +392,6 @@ namespace codeWithMoshDownloader
             await Task.Delay(700);
         }*/
 
-        private static string ParseUrlByQuality(JObject json, string type, string resolution)
-        {
-            return json["media"]["assets"]
-                .Where(x => x["type"].ToString() == type)
-                .Where(x => x["display_name"].ToString() == resolution)
-                .Select(x => x["url"].ToString()).FirstOrDefault();
-        }
 
         private void DownloadProgressChangedHandler(object sender, DownloadProgressChangedEventArgs args)
         {

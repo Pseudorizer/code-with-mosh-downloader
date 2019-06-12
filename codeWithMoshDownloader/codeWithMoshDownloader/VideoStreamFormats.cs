@@ -38,7 +38,14 @@ namespace codeWithMoshDownloader
 
         public static bool TryGetFormat(JObject json, string quality, out VideoFormat videoFormat)
         {
-            JToken correctFormatBlock = json["media"]["assets"].FirstOrDefault(x => x["type"].Value<string>() == quality);
+            if (json["media"]?["assets"] == null)
+            {
+                videoFormat = null;
+                return false;
+            }
+
+            JToken correctFormatBlock = json["media"]["assets"]
+                .FirstOrDefault(x => x["type"].Value<string>() == quality);
 
             if (correctFormatBlock == null)
             {
@@ -48,8 +55,8 @@ namespace codeWithMoshDownloader
 
             videoFormat = new VideoFormat
             {
-                Url = TryGetJsonValue<string>(correctFormatBlock, "url"),
-                Size = TryGetJsonValue<string>(correctFormatBlock, "size")
+                Url = GetJsonValue<string>(correctFormatBlock, "url"),
+                Size = GetJsonValue<string>(correctFormatBlock, "size")
             };
 
             return true;
@@ -84,11 +91,11 @@ namespace codeWithMoshDownloader
             {
                 var format = new VideoFormat
                 {
-                    Type = TryGetJsonValue(asset, "type", "?") + "-",
-                    Codec = TryGetJsonValue(asset, "codec", "?"),
-                    Bitrate = TryGetJsonValue(asset, "bitrate", "?") + "k",
-                    Extension = TryGetJsonValue(asset, "ext", "?"),
-                    Container = TryGetJsonValue(asset, "container", "?") + " Container"
+                    Type = GetJsonValue(asset, "type", "?") + "-",
+                    Codec = GetJsonValue(asset, "codec", "?"),
+                    Bitrate = GetJsonValue(asset, "bitrate", "?") + "k",
+                    Extension = GetJsonValue(asset, "ext", "?"),
+                    Container = GetJsonValue(asset, "container", "?") + " Container"
                 };
 
                 if (format.Extension == "jpg") //think of a better way
@@ -96,13 +103,13 @@ namespace codeWithMoshDownloader
                     continue;
                 }
 
-                string height = TryGetJsonValue(asset, "height", "?");
-                string width = TryGetJsonValue(asset, "width", "?");
+                string height = GetJsonValue(asset, "height", "?");
+                string width = GetJsonValue(asset, "width", "?");
                 format.Resolution = $"{width}x{height}";
 
-                format.Codec += "@" + TryGetJsonValue(asset, "opt_vbitrate", "?") + "k";
+                format.Codec += "@" + GetJsonValue(asset, "opt_vbitrate", "?") + "k";
 
-                ByteSize sizeInBytes = ByteSize.FromBytes(TryGetJsonValue(asset, "size", 0D));
+                ByteSize sizeInBytes = ByteSize.FromBytes(GetJsonValue(asset, "size", 0D));
                 double sizeRounded = Math.Round(sizeInBytes.LargestWholeNumberValue, 2);
 
                 format.Size = sizeRounded + sizeInBytes.LargestWholeNumberSymbol;

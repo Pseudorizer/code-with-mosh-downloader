@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -104,16 +106,40 @@ namespace codeWithMoshDownloader
             return node != null;
         }
 
-        public static T TryGetJsonValue<T>(JToken json, string key, T defaultReturn = default)
+        public static T GetJsonValue<T>(JToken json, string key, T defaultReturn = default)
         {
             return json[key] != null ? json[key].Value<T>() : defaultReturn;
+        }
+
+        public static bool TryGetJsonValue<T>(JToken json, string key, out T value)
+        {
+            value = default;
+
+            if (json[key] != null)
+            {
+                value = json[key].Value<T>();
+            }
+
+            return json[key] != null;
+        }
+
+        public static bool TryGetJsonValueByJPath<T>(JToken json, string jPath, out T value)
+        {
+            value = default;
+
+            if (json.SelectToken(jPath) != null)
+            {
+                value = json.SelectToken(jPath).Value<T>();
+            }
+
+            return json.SelectToken(jPath) != null;
         }
 
         public static string AddIndex(string filename, int index)
         {
             if (!Regex.IsMatch(filename, @"^\d+\s*-\s*"))
             {
-                filename += $"{index} - ";
+                filename = $"{index} - " + filename;
             }
 
             return filename;

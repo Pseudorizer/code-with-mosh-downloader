@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
@@ -23,7 +25,7 @@ namespace codeWithMoshDownloader
 
         public static string GetSafeFilename(this string filename)
         {
-            return string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
+            return String.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
         }
 
         public static bool TryGetNode(HtmlDocument htmlDocument, string xPath, out HtmlNode node)
@@ -102,11 +104,19 @@ namespace codeWithMoshDownloader
             return node != null;
         }
 
-        public static string AddChar(char value, int amount)
+        public static T TryGetJsonValue<T>(JToken json, string key, T defaultReturn = default)
         {
-            return new string(value, amount);
+            return json[key] != null ? json[key].Value<T>() : defaultReturn;
         }
 
-        public static T TryGetJsonKey<T>(JToken json, string key, T defaultReturn = default) => json[key] != null ? json[key].Value<T>() : defaultReturn;
+        public static string AddIndex(string filename, int index)
+        {
+            if (!Regex.IsMatch(filename, @"^\d+\s*-\s*"))
+            {
+                filename += $"{index} - ";
+            }
+
+            return filename;
+        }
     }
 }

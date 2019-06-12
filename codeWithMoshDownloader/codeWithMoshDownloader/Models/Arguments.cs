@@ -14,6 +14,6 @@ namespace codeWithMoshDownloader.Models
 
         public Uri Url { get; set; }
 
-        public Quality QualitySetting { get; set; } = Quality.Hd;
+        public string QualitySetting { get; set; } = "original";
     }
 }

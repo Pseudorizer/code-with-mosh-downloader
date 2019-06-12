@@ -37,10 +37,7 @@ namespace codeWithMoshDownloader
                         arguments.CookiesPath = args[index + 1];
                         break;
                     case "-q" when index + 1 < args.Length:
-                        if (int.TryParse(args[index + 1], out int x))
-                        {
-                            arguments.QualitySetting = (Quality)x;
-                        }
+                        arguments.QualitySetting = args[index + 1];
                         break;
                     case "-Q":
                         arguments.CheckFormats = true;

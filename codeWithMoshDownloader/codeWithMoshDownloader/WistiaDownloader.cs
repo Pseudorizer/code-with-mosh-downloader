@@ -4,8 +4,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ByteSizeLib;
 using codeWithMoshDownloader.Models;
 using Newtonsoft.Json.Linq;
 using static codeWithMoshDownloader.Helpers;
@@ -25,7 +25,8 @@ namespace codeWithMoshDownloader
         private int _downloadCounter;
         private bool _rename;
         private bool _checkFormat;
-        private Quality _quality;
+        private string _quality;
+        private int _currentItemIndex = 1;
 
         public WistiaDownloader(SiteClient siteClient, string courseName)
         {
@@ -44,7 +45,6 @@ namespace codeWithMoshDownloader
             _quality = arguments.QualitySetting;
             _checkFormat = arguments.CheckFormats;
 
-            int playlistTotal = lecturePageList.Count;
             var sectionCounter = 1;
             string currentSection = lecturePageList[0].SectionName;
 
@@ -56,22 +56,23 @@ namespace codeWithMoshDownloader
                 {
                     currentSection = lecturePage.SectionName;
                     sectionCounter++;
+                    _currentItemIndex = 1;
                 }
 
-                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName,
-                    $"{sectionCounter} - {lecturePage.SectionName}");
+                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName, AddIndex(lecturePage.SectionName, sectionCounter));
 
                 if (!Directory.Exists(sectionPath))
                 {
                     Directory.CreateDirectory(sectionPath);
                 }
 
-                Console.WriteLine($"\n[download] Downloading {index + 1} of {playlistTotal}");
+                Console.WriteLine($"\n[download] Downloading {index + 1} of {lecturePageList.Count}");
 
                 string lectureHtml = await _siteClient.Get(lecturePage.Url);
                 Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
 
                 await DownloadLectureFilesNew(lecture, sectionPath);
+                _currentItemIndex++;
             }
 
             return true;
@@ -86,11 +87,11 @@ namespace codeWithMoshDownloader
         {
             if (lecture.WistiaId != null || lecture.WistiaId != "")
             {
-                var t = await DownloadWistiaVideo(lecture.WistiaId, sectionPath);
+                var t = await DownloadWistiaVideo(lecture.WistiaId, lecture.EmbeddedVideo.Url, sectionPath);
             }
         }
 
-        private async Task<bool> DownloadWistiaVideo(string wistiaId, string sectionPath)
+        private async Task<bool> DownloadWistiaVideo(string wistiaId, string embeddedVideoUrl, string sectionPath)
         {
             string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");
 
@@ -99,135 +100,115 @@ namespace codeWithMoshDownloader
 
             if (_checkFormat)
             {
-                DisplayFormats(wistiaJObject);
+                VideoStreamFormats.DisplayFormats(wistiaJObject);
                 return false;
             }
 
             var t = wistiaJObject.ToString();
 
-            if (wistiaJObject?["media"] == null) return false;
+            if (wistiaJObject["media"] == null) return false;
 
             var downloadInfo = new DownloadInfo
             {
-                FileName = wistiaJObject["media"]["name"].ToString()
+                FileName = wistiaJObject["media"]["name"].Value<string>().Trim()
             };
 
-            Quality localQuality = _quality;
+            string qualityTemp = _quality;
 
-            switch (localQuality)
+            if (VideoStreamFormats.TryGetFormat(wistiaJObject, qualityTemp, out VideoFormat format))
             {
-                case Quality.Sd:
-                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "md_mp4_video", "540p");
-                    break;
-                case Quality.Hd:
-                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "hd_mp4_video", "720p");
-                    break;
-                case Quality.FullHd:
-                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "hd_mp4_video", "1080p");
-                    break;
-                case Quality.Original:
-                    downloadInfo.Url = ParseUrlByQuality(wistiaJObject, "original", "Original file");
-                    break;
+                downloadInfo.Url = format.Url;
+                downloadInfo.FileSize = long.Parse(format.Size);
+            }
+            else if (qualityTemp != "original" && VideoStreamFormats.TryGetFormat(wistiaJObject, "original", out VideoFormat originalFormat))
+            {
+                downloadInfo.Url = originalFormat.Url;
+                downloadInfo.FileSize = long.Parse(originalFormat.Size);
+            }
+            else if (embeddedVideoUrl != null)
+            {
+                downloadInfo.Url = embeddedVideoUrl;
+            }
+            else
+            {
+                Console.WriteLine("[download] video download failed, no valid links found");
+                return false;
             }
 
-            return true;
-        }
-
-        private static void DisplayFormats(JObject json)
-        {
-            var assets = ParseAssets(json).ToList().AsReadOnly();
-
-            int typeSpace = assets.Max(x => x.Type.Length) + 2;
-            int extSpace = assets.Max(x => x.Extension.Length) + 2;
-            int resolutionSpace = assets.Max(x => x.Resolution.Length) + 2;
-            int bitrateSpace = assets.Max(x => x.Bitrate.Length) + 2;
-            int containerSpace = assets.Max(x => x.Container.Length) + 12; // because of the container text
-            int codecSpace = assets.Max(x => x.Codec.Length) + 2;
-
-            foreach (Format format in assets.OrderBy(x => x.Type))
+            if (downloadInfo.FileSize == null)
             {
-                string formatString = // ty youtube-dl for the format!
-                        $"{AddSpaces(format.Type, typeSpace)}" +
-                        $"{AddSpaces(format.Extension, extSpace)}" +
-                        $"{AddSpaces(format.Resolution, resolutionSpace)}" +
-                        $"{AddSpaces(format.Bitrate, bitrateSpace)}" +
-                        $"{AddSpaces(format.Container + " Container", containerSpace)}" +
-                        $"{AddSpaces(format.Codec, codecSpace)}" +
-                        $"{format.Size}";
-                Console.WriteLine(formatString);
+                return await DownloadFile(downloadInfo.Url, downloadInfo.FileName, sectionPath);
             }
+
+            return await DownloadFile(downloadInfo, sectionPath);
         }
 
-        private static string AddSpaces(string value, int max)
+        private async Task<bool> DownloadFile(DownloadInfo downloadInfo, string sectionPath) // these method names are terrible
         {
-            int spacesNeeded = max - value.Length;
-            return value += new string(' ', spacesNeeded);
-        }
+            downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex);
+            string filePath = Path.Combine(sectionPath, downloadInfo.FileName);
 
-        private static IEnumerable<Format> ParseAssets(JObject json)
-        {
-            JToken assets = json["media"]["assets"];
-
-            List<Format> formatList = new List<Format>();
-
-            var titles = new Format
+            if (File.Exists(filePath) && !_rename)
             {
-                Type = "Format Name",
-                Extension = "Extension",
-                Resolution = "Resolution",
-                Bitrate = "Bitrate",
-                Codec = "Codec",
-                Container = "Container",
-                Size = "Size"
-            };
+                long fileSize = new FileInfo(filePath).Length;
 
-            formatList.Add(titles);
-
-            foreach (JToken asset in assets)
-            {
-                var format = new Format
+                if (fileSize == downloadInfo.FileSize)
                 {
-                    Type = TryGetJsonKey(asset, "type", "?") + "-",
-                    Codec = TryGetJsonKey(asset, "codec", "?"),
-                    Bitrate = TryGetJsonKey(asset, "bitrate", "?") + "k",
-                    Extension = TryGetJsonKey(asset, "ext", "?"),
-                    Container = TryGetJsonKey(asset, "container", "?")
+                    Console.WriteLine("[download] file already exists");
+                    return true;
+                }
+            }
+
+            return await DownloadClient(downloadInfo.Url, filePath);
+        }
+
+        private async Task<bool> DownloadFile(string url, string filename, string sectionPath)
+        {
+            filename = AddIndex(filename, _currentItemIndex);
+            string filePath = Path.Combine(sectionPath, filename);
+
+            if (File.Exists(filePath) && !_rename)
+            {
+                Console.WriteLine("[download] file already exists");
+                return true;
+            }
+
+            return await DownloadClient(url, filePath);
+        }
+
+        private async Task<bool> DownloadClient(string url, string filepath)
+        {
+            using (var webClient = new WebClient())
+            {
+                var result = false;
+                webClient.DownloadProgressChanged += DownloadProgressChangedHandler;
+
+                webClient.DownloadDataCompleted += (sender, args) =>
+                {
+                    int currentCursorPosition = Console.CursorTop;
+                    Console.SetCursorPosition(0, Console.CursorTop);
+                    Console.Write(new string(' ', Console.WindowWidth));
+                    Console.SetCursorPosition(0, currentCursorPosition);
+
+                    if (args.Error != null)
+                    {
+                        Console.Write("\r[download] Download failed\n");
+                    }
+                    else if (!args.Cancelled)
+                    {
+                        result = true;
+                        Console.Write("\r[download] Download complete\n");
+                    }
+                    else
+                    {
+                        Console.Write("\r[download] something else\n");
+                    }
                 };
 
-                if (format.Extension == "jpg") //think of a better way
-                {
-                    continue;
-                }
+                await webClient.DownloadFileTaskAsync(new Uri(url), filepath);
 
-                string height = TryGetJsonKey(asset, "height", "?");
-                string width = TryGetJsonKey(asset, "width", "?");
-                format.Resolution = $"{width}x{height}";
-
-                format.Codec += "@" + TryGetJsonKey(asset, "opt_vbitrate", "?") + "k";
-
-                ByteSize sizeInBytes = ByteSize.FromBytes(TryGetJsonKey(asset, "size", 0D));
-                double sizeRounded = Math.Round(sizeInBytes.LargestWholeNumberValue, 2);
-
-                format.Size = sizeRounded + sizeInBytes.LargestWholeNumberSymbol;
-
-                int typeCount = formatList.Count(x => x.Type.Substring(0, x.Type.Length - 1) == format.Type);
-                format.Type += typeCount == 0 ? 0 : typeCount;
-
-                formatList.Add(format);
+                return result;
             }
-
-            return formatList;
-        }
-
-        private class Format
-        {
-            public string Type { get; set; }
-            public string Codec { get; set; }
-            public string Bitrate { get; set; }
-            public string Resolution { get; set; }
-            public string Extension { get; set; }
-            public string Container { get; set; }
-            public string Size { get; set; }
         }
 
         /*private async Task DownloadLectureFiles(Lecture lecture, string sectionPath) //should break up

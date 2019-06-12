@@ -6,7 +6,6 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
-using static codeWithMoshDownloader.Helpers;
 
 namespace codeWithMoshDownloader
 {

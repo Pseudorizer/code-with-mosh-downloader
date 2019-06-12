@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
 using Newtonsoft.Json.Linq;
@@ -404,15 +401,6 @@ namespace codeWithMoshDownloader
 
                 Console.Write($"\r[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)");
             }
-        }
-
-        private static void DownloadFileCompletedHandler(object sender, AsyncCompletedEventArgs args)
-        {
-            int currentCursorPosition = Console.CursorTop;
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write(new string(' ', Console.WindowWidth));
-            Console.SetCursorPosition(0, currentCursorPosition);
-            Console.Write("\r[download] Download complete\n");
         }
     }
 }

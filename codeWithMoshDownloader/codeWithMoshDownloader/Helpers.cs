@@ -18,8 +18,10 @@ namespace codeWithMoshDownloader
 
         public static async Task<string> SimpleGet(string url)
         {
-            HttpResponseMessage response = await HttpClient.GetAsync(url);
-            return await response.Content.ReadAsStringAsync();
+            using (HttpResponseMessage response = await HttpClient.GetAsync(url))
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
         }
 
         public static string GetSafeFilename(this string filename)

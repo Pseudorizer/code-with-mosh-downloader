@@ -15,6 +15,11 @@ namespace codeWithMoshDownloader
         {
             ReadOnlyCollection<VideoFormat> assets = ParseAssets(json).ToList().AsReadOnly();
 
+            if (assets == null)
+            {
+                return;
+            }
+
             int typeSpace = assets.Max(x => x.Type.Length) + 2;
             int extSpace = assets.Max(x => x.Extension.Length) + 2;
             int resolutionSpace = assets.Max(x => x.Resolution.Length) + 2;
@@ -70,6 +75,12 @@ namespace codeWithMoshDownloader
 
         private static IEnumerable<VideoFormat> ParseAssets(JObject json)
         {
+            if (json["media"]?["assets"] == null)
+            {
+                Console.WriteLine("[download] formats not available");
+                return null;
+            }
+
             JToken assets = json["media"]["assets"];
 
             var formatList = new List<VideoFormat>();

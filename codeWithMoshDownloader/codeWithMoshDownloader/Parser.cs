@@ -78,10 +78,13 @@ namespace codeWithMoshDownloader
 
         private IEnumerable<LectureExtra> GetEmbeddedExtras(HtmlNode attachmentNode, Lecture lecture)
         {
-            HtmlNodeCollection embedNodes = attachmentNode.SelectNodes(
-                "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div");
+            HtmlNodeCollection embedNodes;
 
-            if (embedNodes == null)
+            if (TryGetNodes(attachmentNode, "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div", out HtmlNodeCollection nodesCollection))
+            {
+                embedNodes = nodesCollection;
+            }
+            else
             {
                 yield break;
             }

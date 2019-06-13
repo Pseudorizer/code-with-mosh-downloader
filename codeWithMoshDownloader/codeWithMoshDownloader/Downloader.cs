@@ -55,7 +55,7 @@ namespace codeWithMoshDownloader
             {
                 LecturePage lecturePage = lecturePageList[index];
 
-                int sectionCounter = sectionList.IndexOf(lecturePage.SectionName) + 1;
+                int sectionIndex = sectionList.IndexOf(lecturePage.SectionName) + 1;
 
                 _currentItemIndex = sectionsGrouped
                     .Select(x => x.IndexOf(lecturePage))
@@ -71,7 +71,7 @@ namespace codeWithMoshDownloader
                     currentSection = lecturePage.SectionName;
                 }
 
-                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName, AddIndex(lecturePage.SectionName, sectionCounter));
+                string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName, AddIndex(lecturePage.SectionName, sectionIndex));
 
                 if (!Directory.Exists(sectionPath))
                 {
@@ -83,7 +83,7 @@ namespace codeWithMoshDownloader
                 string lectureHtml = await _siteClient.Get(lecturePage.Url);
                 Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
 
-                await DownloadLectureFilesNew(lecture, sectionPath);
+                await DownloadLecture(lecture, sectionPath);
                 _currentItemIndex++;
             }
 
@@ -95,7 +95,7 @@ namespace codeWithMoshDownloader
             await Download(new List<LecturePage> { lecturePage }, arguments);
         }
 
-        private async Task DownloadLectureFilesNew(Lecture lecture, string sectionPath)
+        private async Task DownloadLecture(Lecture lecture, string sectionPath)
         {
             bool videoDownloadResult;
 

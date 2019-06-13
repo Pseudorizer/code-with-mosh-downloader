@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -144,6 +145,14 @@ namespace codeWithMoshDownloader
             filename = Regex.Replace(filename, @"^(\d+)-\s", "$1 - ");
 
             return filename;
+        }
+
+        public static void ClearLine()
+        {
+            int currentCursorPosition = Console.CursorTop;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, currentCursorPosition);
         }
     }
 }

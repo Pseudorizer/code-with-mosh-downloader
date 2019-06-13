@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
@@ -37,18 +39,36 @@ namespace codeWithMoshDownloader
             _force = arguments.Force;
             _checkFormat = arguments.CheckFormats;
 
-            var sectionCounter = 1;
-            string currentSection = lecturePageList[0].SectionName;
+            ReadOnlyCollection<string> sectionList = lecturePageList
+                .GroupBy(x => x.SectionName)
+                .Select(x => x.First().SectionName)
+                .ToList().AsReadOnly();
+
+            ReadOnlyCollection<ReadOnlyCollection<LecturePage>> sectionsGrouped = lecturePageList
+                .GroupBy(x => x.SectionName)
+                .Select(x => x.ToList().AsReadOnly())
+                .ToList().AsReadOnly();
+
+            string currentSection = string.Empty;
 
             for (int index = arguments.StartingPosition; index < lecturePageList.Count; index++)
             {
                 LecturePage lecturePage = lecturePageList[index];
 
-                if (currentSection != lecturePage.SectionName)
+                int sectionCounter = sectionList.IndexOf(lecturePage.SectionName) + 1;
+
+                _currentItemIndex = sectionsGrouped
+                    .Select(x => x.IndexOf(lecturePage))
+                    .First(x => x != -1) + 1;
+
+                if (currentSection != lecturePage.SectionName && currentSection != "")
                 {
                     currentSection = lecturePage.SectionName;
-                    sectionCounter++;
                     _currentItemIndex = 1;
+                }
+                else
+                {
+                    currentSection = lecturePage.SectionName;
                 }
 
                 string sectionPath = Path.Combine(AppContext.BaseDirectory, _courseName, AddIndex(lecturePage.SectionName, sectionCounter));

@@ -52,6 +52,12 @@ namespace codeWithMoshDownloader
 
             arguments.Url = new Uri(args.Last());
 
+            if (arguments.Url.Host != "codewithmosh.com")
+            {
+                Console.WriteLine("[error] invalid host");
+                Environment.Exit(1);
+            }
+
             if (Regex.IsMatch(arguments.Url.ToString(), @"\/courses\/\d+\/lectures\/\d+"))
             {
                 isLecture = true;
@@ -59,19 +65,19 @@ namespace codeWithMoshDownloader
 
             if (!File.Exists(arguments.CookiesPath))
             {
-                Console.WriteLine("Error: Cookies file not found");
+                Console.WriteLine("[error] Cookies file not found");
                 Environment.Exit(1);
             }
 
             var cookieParser = new CookieParser(arguments.CookiesPath);
 
-            Console.WriteLine("Parsing cookies");
+            Console.WriteLine("[cookies] Parsing cookies");
             CookieCollection cookiesParsed = cookieParser.GetWebsiteCookies("codewithmosh.com");
 
             var client = new SiteClient(new Uri($"{arguments.Url.Scheme}://{arguments.Url.Host}"));
             client.SetCookies(cookiesParsed);
 
-            Console.WriteLine("Grabbing course");
+            Console.WriteLine("[siteClient] Grabbing course");
             string courseHtml = await client.Get(arguments.Url.AbsolutePath);
 
             if (isLecture)
@@ -114,10 +120,13 @@ namespace codeWithMoshDownloader
 
         private static void Help()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Usage: dotnet codeWithMoshDownloader.dll [-c -f -q -Q -s [position] URL");
+            Console.WriteLine("-c : path to cookies.txt");
+            Console.WriteLine("-f : force overwrite of existing files");
+            Console.WriteLine("-q : specify quality code, see -Q on how to get said code, default is original");
+            Console.WriteLine("-Q : print all available formats for each lecture, to be used with -q");
+            Console.WriteLine("-s : sets the starting position in a playlist");
 
-            //-c cookies
-            //-r rename
         }
     }
 }

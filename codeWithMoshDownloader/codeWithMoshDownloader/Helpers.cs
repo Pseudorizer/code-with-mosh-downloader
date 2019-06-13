@@ -141,6 +141,8 @@ namespace codeWithMoshDownloader
                 filename = $"{index} - " + filename;
             }
 
+            filename = Regex.Replace(filename, @"^(\d+)-\s", "$1 - ");
+
             return filename;
         }
     }

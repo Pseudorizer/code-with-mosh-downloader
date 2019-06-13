@@ -1,6 +1,6 @@
 ﻿namespace codeWithMoshDownloader.Models
 {
-    public class TextArea : IText
+    public class Quiz : IText
     {
         public string Html { get; set; }
 

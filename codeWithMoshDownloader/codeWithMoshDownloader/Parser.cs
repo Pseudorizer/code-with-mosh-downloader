@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Web;
 using codeWithMoshDownloader.Models;
 using HtmlAgilityPack;
+using Newtonsoft.Json.Linq;
 using static codeWithMoshDownloader.Helpers;
 
 namespace codeWithMoshDownloader
@@ -61,7 +64,7 @@ namespace codeWithMoshDownloader
                 };
             }
 
-            lecture.TextAreas.AddRange(GetTextAreas());
+            lecture.TextContentList.AddRange(GetTextAreas());
 
             HtmlNodeCollection attachments =
                 _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'lecture-attachment')]");
@@ -71,6 +74,8 @@ namespace codeWithMoshDownloader
                 lecture.Extras.AddRange(GetEmbeddedExtras(attachmentNode, lecture));
 
                 lecture.Extras.AddRange(GetLectureExtras(attachmentNode, lecture));
+
+                lecture.TextContentList.Add(GetLectureQuiz(attachmentNode));
             }
 
             return lecture;
@@ -80,9 +85,9 @@ namespace codeWithMoshDownloader
         {
             HtmlNodeCollection embedNodes;
 
-            if (TryGetNodes(attachmentNode, "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div", out HtmlNodeCollection nodesCollection))
+            if (TryGetNodes(attachmentNode, "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div", out HtmlNodeCollection nodeCollection))
             {
-                embedNodes = nodesCollection;
+                embedNodes = nodeCollection;
             }
             else
             {
@@ -133,7 +138,16 @@ namespace codeWithMoshDownloader
 
         private static IEnumerable<LectureExtra> GetLectureExtras(HtmlNode attachmentNode, Lecture lecture)
         {
-            HtmlNodeCollection downloadNodes = attachmentNode.SelectNodes(".//a[contains(@class, 'download')]");
+            HtmlNodeCollection downloadNodes;
+
+            if (TryGetNodes(attachmentNode, ".//a[contains(@class, 'download')]", out HtmlNodeCollection nodeCollection))
+            {
+                downloadNodes = nodeCollection;
+            }
+            else
+            {
+                yield break;
+            }
 
             foreach (HtmlNode downloadNode in downloadNodes)
             {
@@ -147,6 +161,79 @@ namespace codeWithMoshDownloader
 
                 yield return extra;
             }
+        }
+
+        private static Quiz GetLectureQuiz(HtmlNode attachmentNode)
+        {
+            HtmlNode quizNode;
+
+            if (TryGetNode(attachmentNode, "./div", out HtmlNode nodes))
+            {
+                quizNode = nodes;
+            }
+            else
+            {
+                return new Quiz();
+            }
+
+            JObject answersJson = JObject.Parse(HttpUtility.HtmlDecode(quizNode.Attributes["data-data"].Value));
+            JObject questionsJson = JObject.Parse(HttpUtility.HtmlDecode(quizNode.Attributes["data-schema"].Value));
+
+            ReadOnlyCollection<string> answers = answersJson["answerKey"]
+                .Children().Children().Children()
+                .Select(x => x.Value<string>())
+                .ToList().AsReadOnly();
+
+            var questionProperties = questionsJson["properties"].Children().Children();
+
+            List<QuizQuestion> quizQuestions = new List<QuizQuestion>();
+
+            foreach (JToken questionProperty in questionProperties)
+            {
+                var quizQuestion = new QuizQuestion
+                {
+                    Title = questionProperty["title"].Value<string>()
+                };
+
+                quizQuestion.PotentialAnswers.AddRange(questionProperty["enum"].Select(x => x.Value<string>()));
+
+                quizQuestions.Add(quizQuestion);
+            }
+
+            return new Quiz
+            {
+                FileName = "Quiz.html",
+                Html = BuildQuizHtml(quizQuestions, answers)
+            };
+        }
+
+        private static string BuildQuizHtml(IReadOnlyList<QuizQuestion> quizQuestions, IReadOnlyList<string> answers)
+        {
+            var html =
+                "<style>\r\n    .spoiler {\r\n        color: black;\r\n        background-color: black;\r\n    }\r\n\r\n    .spoiler:hover {\r\n        background-color: white;\r\n    }\r\n</style>\n\n";
+
+            for (var i = 0; i < quizQuestions.Count; i++)
+            {
+                QuizQuestion quizQuestion = quizQuestions[i];
+                string quizAnswer = answers[i];
+
+                html += $"<h3>{quizQuestion.Title}</h3>\n";
+
+                foreach (string potentialAnswer in quizQuestion.PotentialAnswers)
+                {
+                    html += $"<p>{potentialAnswer}</p>\n";
+                }
+
+                html += $"\n<br><p>Answer</p>\n<p class=\"spoiler\">{quizAnswer}</p>\n<br>";
+            }
+
+            return html;
+        }
+
+        private class QuizQuestion
+        {
+            public string Title { get; set; }
+            public List<string> PotentialAnswers { get; } = new List<string>();
         }
 
         public string GetCourseName(string pageContent)

@@ -9,7 +9,7 @@ namespace codeWithMoshDownloader.Models
 
         public EmbeddedVideo EmbeddedVideo { get; set; }
 
-        public List<TextArea> TextAreas { get; } = new List<TextArea>();
+        public List<IText> TextContentList { get; } = new List<IText>();
 
         public List<LectureExtra> Extras { get; } = new List<LectureExtra>();
     }

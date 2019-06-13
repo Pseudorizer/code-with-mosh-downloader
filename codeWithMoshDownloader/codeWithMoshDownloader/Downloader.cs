@@ -98,13 +98,13 @@ namespace codeWithMoshDownloader
 
         private async Task DownloadLecture(Lecture lecture, string sectionPath)
         {
-            bool videoDownloadResult;
+            var videoDownloadResult = false;
 
-            if (lecture.WistiaId == "")
+            if (lecture.WistiaId == "" && lecture.EmbeddedVideo != null)
             {
                 videoDownloadResult = await DownloadFile(lecture.EmbeddedVideo, sectionPath);
             }
-            else
+            else if (lecture.WistiaId != "")
             {
                 videoDownloadResult = await DownloadWistiaVideo(lecture.WistiaId, sectionPath);
             }
@@ -114,7 +114,7 @@ namespace codeWithMoshDownloader
                 return;
             }
 
-            if (videoDownloadResult == false && lecture.WistiaId != "")
+            if (videoDownloadResult == false && lecture.WistiaId != "" && lecture.EmbeddedVideo != null)
             {
                 await DownloadFile(lecture.EmbeddedVideo, sectionPath);
             }
@@ -124,7 +124,7 @@ namespace codeWithMoshDownloader
                 await DownloadFile(lectureExtra, sectionPath);
             }
 
-            foreach (TextArea lectureTextArea in lecture.TextAreas)
+            foreach (IText lectureTextArea in lecture.TextContentList)
             {
                 lectureTextArea.FileName = AddIndex(lectureTextArea.FileName, _currentItemIndex);
 
@@ -189,7 +189,7 @@ namespace codeWithMoshDownloader
                 return false;
             }
 
-            downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex);
+            downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex).GetSafeFilename();
 
             Console.WriteLine($"[download] Downloading {downloadInfo.FileName}");
 
@@ -207,7 +207,7 @@ namespace codeWithMoshDownloader
 
         private async Task<bool> DownloadFile(WistiaDownloadInfo wistiaDownloadInfo, string sectionPath) // these method names are terrible
         {
-            wistiaDownloadInfo.FileName = AddIndex(wistiaDownloadInfo.FileName, _currentItemIndex);
+            wistiaDownloadInfo.FileName = AddIndex(wistiaDownloadInfo.FileName, _currentItemIndex).GetSafeFilename();
             string filePath = Path.Combine(sectionPath, wistiaDownloadInfo.FileName);
 
             if (File.Exists(filePath) && !_force)

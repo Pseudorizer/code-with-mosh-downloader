@@ -57,14 +57,14 @@ namespace codeWithMoshDownloader
 
             if (TryGetNode(_htmlDocument, "//div[@class='video-options']//a", out HtmlNode embeddedVideoNode))
             {
-                lecture.EmbeddedVideo = new EmbeddedVideo
+                lecture.EmbeddedVideo = new GenericFile
                 {
                     Url = embeddedVideoNode.Attributes["href"].Value,
                     FileName = embeddedVideoNode.Attributes["data-x-origin-download-name"].Value
                 };
             }
 
-            lecture.TextContentList.AddRange(GetTextAreas());
+            lecture.HtmlFiles.AddRange(GetTextAreas());
 
             HtmlNodeCollection attachments =
                 _htmlDocument.DocumentNode.SelectNodes("//div[contains(@class, 'lecture-attachment')]");
@@ -75,18 +75,18 @@ namespace codeWithMoshDownloader
 
                 lecture.Extras.AddRange(GetLectureExtras(attachmentNode, lecture));
 
-                Quiz quiz = GetLectureQuiz(attachmentNode);
+                HtmlFile quiz = GetLectureQuiz(attachmentNode);
 
                 if (quiz != null)
                 {
-                    lecture.TextContentList.Add(quiz);
+                    lecture.HtmlFiles.Add(quiz);
                 }
             }
 
             return lecture;
         }
 
-        private IEnumerable<LectureExtra> GetEmbeddedExtras(HtmlNode attachmentNode, Lecture lecture)
+        private IEnumerable<GenericFile> GetEmbeddedExtras(HtmlNode attachmentNode, Lecture lecture)
         {
             HtmlNodeCollection embedNodes;
 
@@ -101,7 +101,7 @@ namespace codeWithMoshDownloader
 
             foreach (HtmlNode embedNode in embedNodes)
             {
-                var embedExtra = new LectureExtra();
+                var embedExtra = new GenericFile();
 
                 string id = embedNode.Attributes["data-pdfviewer-id"].Value;
 
@@ -119,7 +119,7 @@ namespace codeWithMoshDownloader
             }
         }
 
-        private IEnumerable<TextArea> GetTextAreas()
+        private IEnumerable<HtmlFile> GetTextAreas()
         {
             if (!TryGetNodes(_htmlDocument, "//div[@class='lecture-text-container']",
                 out HtmlNodeCollection textNodes)) yield break;
@@ -128,7 +128,7 @@ namespace codeWithMoshDownloader
             {
                 if (!TryGetNode(_htmlDocument, "//h2[@id='lecture_heading']", out HtmlNode headerNode)) continue;
 
-                var textArea = new TextArea
+                var textArea = new HtmlFile
                 {
                     FileName = headerNode.InnerText.Trim()
                                    .Replace("&nbsp;", "")
@@ -141,7 +141,7 @@ namespace codeWithMoshDownloader
             }
         }
 
-        private static IEnumerable<LectureExtra> GetLectureExtras(HtmlNode attachmentNode, Lecture lecture)
+        private static IEnumerable<GenericFile> GetLectureExtras(HtmlNode attachmentNode, Lecture lecture)
         {
             HtmlNodeCollection downloadNodes;
 
@@ -156,7 +156,7 @@ namespace codeWithMoshDownloader
 
             foreach (HtmlNode downloadNode in downloadNodes)
             {
-                var extra = new LectureExtra
+                var extra = new GenericFile
                 {
                     Url = downloadNode.Attributes["href"].Value,
                     FileName = downloadNode.Attributes["data-x-origin-download-name"].Value.Trim().GetSafeFilename()
@@ -168,7 +168,7 @@ namespace codeWithMoshDownloader
             }
         }
 
-        private static Quiz GetLectureQuiz(HtmlNode attachmentNode)
+        private static HtmlFile GetLectureQuiz(HtmlNode attachmentNode)
         {
             HtmlNode quizNode;
 
@@ -205,7 +205,7 @@ namespace codeWithMoshDownloader
                 quizQuestions.Add(quizQuestion);
             }
 
-            return new Quiz
+            return new HtmlFile
             {
                 FileName = "Quiz.html",
                 Html = BuildQuizHtml(quizQuestions, answers)

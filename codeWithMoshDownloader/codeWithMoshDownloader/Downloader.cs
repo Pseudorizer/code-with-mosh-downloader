@@ -120,12 +120,12 @@ namespace codeWithMoshDownloader
                 await DownloadFile(lecture.EmbeddedVideo, sectionPath);
             }
 
-            foreach (LectureExtra lectureExtra in lecture.Extras)
+            foreach (GenericFile lectureExtra in lecture.Extras)
             {
                 await DownloadFile(lectureExtra, sectionPath);
             }
 
-            foreach (IText lectureTextArea in lecture.TextContentList)
+            foreach (HtmlFile lectureTextArea in lecture.HtmlFiles)
             {
                 lectureTextArea.FileName = AddIndex(lectureTextArea.FileName, _currentItemIndex);
 
@@ -182,7 +182,7 @@ namespace codeWithMoshDownloader
             return await DownloadFile(downloadInfo, sectionPath);
         }
 
-        private async Task<bool> DownloadFile(IDownload downloadInfo, string sectionPath)
+        private async Task<bool> DownloadFile(GenericFile downloadInfo, string sectionPath)
         {
             if (downloadInfo.Url == null || downloadInfo.FileName == null)
             {

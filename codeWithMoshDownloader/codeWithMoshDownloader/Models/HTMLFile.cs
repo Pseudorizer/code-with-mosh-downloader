@@ -1,6 +1,6 @@
 ﻿namespace codeWithMoshDownloader.Models
 {
-    public class TextArea : IText
+    public class HtmlFile
     {
         public string Html { get; set; }
 

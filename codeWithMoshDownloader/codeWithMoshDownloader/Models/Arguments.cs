@@ -4,7 +4,7 @@ namespace codeWithMoshDownloader.Models
 {
     public class Arguments
     {
-        public bool Rename { get; set; }
+        public bool Force { get; set; }
 
         public bool CheckFormats { get; set; }
 

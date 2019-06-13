@@ -29,8 +29,8 @@ namespace codeWithMoshDownloader
 
                 switch (arg)
                 {
-                    case "-r":
-                        arguments.Rename = true;
+                    case "-f":
+                        arguments.Force = true;
                         break;
                     case "-c" when index + 1 < args.Length:
                         arguments.CookiesPath = args[index + 1];
@@ -92,7 +92,7 @@ namespace codeWithMoshDownloader
 
             Console.WriteLine($"{courseName} - {playlistItems.Count} items");
 
-            var downloader = new WistiaDownloader(client, courseName);
+            var downloader = new Downloader(client, courseName);
             await downloader.Download(playlistItems, arguments);
         }
 
@@ -108,7 +108,7 @@ namespace codeWithMoshDownloader
                 Url = lecturePath
             };
 
-            var downloader = new WistiaDownloader(client, courseName);
+            var downloader = new Downloader(client, courseName);
             await downloader.Download(lecturePage, arguments);
         }
 

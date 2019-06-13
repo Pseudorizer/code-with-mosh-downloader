@@ -13,8 +13,6 @@ namespace codeWithMoshDownloader
     {
         private static async Task Main(string[] args)
         {
-            var isLecture = false;
-
             if (args.Length == 0)
             {
                 Help();
@@ -59,11 +57,6 @@ namespace codeWithMoshDownloader
                 Environment.Exit(1);
             }
 
-            if (Regex.IsMatch(arguments.Url.ToString(), @"\/courses\/\d+\/lectures\/\d+"))
-            {
-                isLecture = true;
-            }
-
             if (!File.Exists(arguments.CookiesPath))
             {
                 Console.WriteLine("[error] Cookies file not found");
@@ -80,6 +73,8 @@ namespace codeWithMoshDownloader
 
             Console.WriteLine("[siteClient] Grabbing course");
             string courseHtml = await client.Get(arguments.Url.AbsolutePath);
+
+            bool isLecture = Regex.IsMatch(arguments.Url.ToString(), @"\/courses\/\d+\/lectures\/\d+");
 
             if (isLecture)
             {

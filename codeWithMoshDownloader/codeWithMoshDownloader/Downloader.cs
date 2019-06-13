@@ -14,7 +14,6 @@ namespace codeWithMoshDownloader
 {
     public class Downloader
     {
-        private readonly Parser _lectureParser = new Parser();
         private readonly SiteClient _siteClient;
         private readonly string _courseName;
         private int _downloadCounter;
@@ -81,8 +80,10 @@ namespace codeWithMoshDownloader
 
                 Console.WriteLine($"\n[download] Downloading {index + 1} of {lecturePageList.Count}");
 
+                var parser = new Parser();
+
                 string lectureHtml = await _siteClient.Get(lecturePage.Url);
-                Lecture lecture = _lectureParser.GetLectureLinks(lectureHtml);
+                Lecture lecture = parser.GetLectureLinks(lectureHtml);
 
                 await DownloadLecture(lecture, sectionPath);
                 _currentItemIndex++;

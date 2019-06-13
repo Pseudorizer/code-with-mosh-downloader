@@ -81,6 +81,11 @@ namespace codeWithMoshDownloader
             HtmlNodeCollection embedNodes = attachmentNode.SelectNodes(
                 "./div[@class='row attachment-pdf-embed']/div/div[@class='wrapper']/div");
 
+            if (embedNodes == null)
+            {
+                yield break;
+            }
+
             foreach (HtmlNode embedNode in embedNodes)
             {
                 var embedExtra = new LectureExtra();

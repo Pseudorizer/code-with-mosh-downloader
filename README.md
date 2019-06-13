@@ -12,7 +12,7 @@ Another big reason to use this is that it grabs lecture attacthments which youtu
 
 #### Credit to Youtube-dl for the output formatting
 
-##### Usage: `dotnet codeWithMoshDownloader.dll [-c -f -q [FORMATCODE/RESOLUTION] -Q -s [STARTING POSITION]] URL to playlist or lecture`
+##### Usage: `dotnet codeWithMoshDownloader.dll [-c [PATH TO COOKIES.TXT] -f -q [FORMATCODE/RESOLUTION] -Q -s [STARTING POSITION]] URL to playlist or lecture`
 
 `-c` path to cookies.txt - this is required, you cannot use the tool using a username/password, there are many extensions that can do this for you
 

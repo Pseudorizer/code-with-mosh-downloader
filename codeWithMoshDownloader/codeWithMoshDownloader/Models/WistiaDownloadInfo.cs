@@ -1,6 +1,6 @@
 ﻿namespace codeWithMoshDownloader.Models
 {
-    public class DownloadInfo
+    public class WistiaDownloadInfo
     {
         public string Url { get; set; }
         public string FileName { get; set; }

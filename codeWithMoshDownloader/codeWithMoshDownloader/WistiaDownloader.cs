@@ -80,15 +80,42 @@ namespace codeWithMoshDownloader
 
         private async Task DownloadLectureFilesNew(Lecture lecture, string sectionPath)
         {
-            if (lecture.WistiaId != null)
+            bool videoDownloadResult;
+
+            if (lecture.WistiaId == "")
             {
-                var t = await DownloadWistiaVideo(lecture.WistiaId, lecture.EmbeddedVideo, sectionPath);
+                videoDownloadResult = await DownloadFile(lecture.EmbeddedVideo, sectionPath);
+            }
+            else
+            {
+                videoDownloadResult = await DownloadWistiaVideo(lecture.WistiaId, sectionPath);
+            }
+
+            if (videoDownloadResult == false && lecture.WistiaId != "")
+            {
+                await DownloadFile(lecture.EmbeddedVideo, sectionPath);
+            }
+
+            foreach (LectureExtra lectureExtra in lecture.Extras)
+            {
+                await DownloadFile(lectureExtra, sectionPath);
+            }
+
+            foreach (TextArea lectureTextArea in lecture.TextAreas)
+            {
+                lectureTextArea.FileName = AddIndex(lectureTextArea.FileName, _currentItemIndex);
+
+                string filePath = Path.Combine(sectionPath, lectureTextArea.FileName);
+
+                File.Create(filePath).Close();
+                
+                File.WriteAllText(filePath, lectureTextArea.Html);
             }
         }
 
         // a good idea might be to check if the wistia is "" before calling this method, i could have an overload for just embedded stuff
         // and it would save a bit of time as it cuts out the get request and all the other checks and parsing
-        private async Task<bool> DownloadWistiaVideo(string wistiaId, EmbeddedVideo embeddedVideo, string sectionPath)
+        private async Task<bool> DownloadWistiaVideo(string wistiaId, string sectionPath)
         {
             string wistiaJson = await SimpleGet($"https://fast.wistia.net/embed/medias/{wistiaId}.json");
 
@@ -100,7 +127,7 @@ namespace codeWithMoshDownloader
                 return false;
             }
 
-            var downloadInfo = new DownloadInfo();
+            var downloadInfo = new WistiaDownloadInfo();
 
             if (TryGetJsonValueByJPath(wistiaJObject, "$.media.name", out string filename))
             {
@@ -117,10 +144,6 @@ namespace codeWithMoshDownloader
                 downloadInfo.Url = originalFormat.Url;
                 downloadInfo.FileSize = long.Parse(originalFormat.Size);
             }
-            else if (embeddedVideo.Url != null && embeddedVideo.FileName != null)
-            {
-                return await DownloadFile(embeddedVideo, sectionPath);
-            }
             else
             {
                 Console.WriteLine("[download] video download failed, no valid links found");
@@ -130,29 +153,19 @@ namespace codeWithMoshDownloader
             return await DownloadFile(downloadInfo, sectionPath);
         }
 
-        private async Task<bool> DownloadFile(DownloadInfo downloadInfo, string sectionPath) // these method names are terrible
+        private async Task<bool> DownloadFile(IDownload downloadInfo, string sectionPath)
         {
-            downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex);
-            string filePath = Path.Combine(sectionPath, downloadInfo.FileName);
-
-            if (File.Exists(filePath))
+            if (downloadInfo.Url == null || downloadInfo.FileName == null)
             {
-                long fileSize = new FileInfo(filePath).Length;
-
-                if (fileSize == downloadInfo.FileSize)
-                {
-                    Console.WriteLine("[download] file already exists");
-                    return true;
-                }
+                Console.WriteLine("[download] download failed");
+                return false;
             }
 
-            return await DownloadClient(downloadInfo.Url, filePath);
-        }
+            downloadInfo.FileName = AddIndex(downloadInfo.FileName, _currentItemIndex);
 
-        private async Task<bool> DownloadFile(EmbeddedVideo embeddedVideo, string sectionPath)
-        {
-            embeddedVideo.FileName = AddIndex(embeddedVideo.FileName, _currentItemIndex);
-            string filePath = Path.Combine(sectionPath, embeddedVideo.FileName);
+            Console.WriteLine($"[download] downloading {downloadInfo.FileName}");
+
+            string filePath = Path.Combine(sectionPath, downloadInfo.FileName);
 
             if (File.Exists(filePath))
             {
@@ -160,7 +173,26 @@ namespace codeWithMoshDownloader
                 return true;
             }
 
-            return await DownloadClient(embeddedVideo.Url, filePath);
+            return await DownloadClient(downloadInfo.Url, filePath);
+        }
+
+        private async Task<bool> DownloadFile(WistiaDownloadInfo wistiaDownloadInfo, string sectionPath) // these method names are terrible
+        {
+            wistiaDownloadInfo.FileName = AddIndex(wistiaDownloadInfo.FileName, _currentItemIndex);
+            string filePath = Path.Combine(sectionPath, wistiaDownloadInfo.FileName);
+
+            if (File.Exists(filePath))
+            {
+                long fileSize = new FileInfo(filePath).Length;
+
+                if (fileSize == wistiaDownloadInfo.FileSize)
+                {
+                    Console.WriteLine("[download] file already exists");
+                    return true;
+                }
+            }
+
+            return await DownloadClient(wistiaDownloadInfo.Url, filePath);
         }
 
         private async Task<bool> DownloadClient(string url, string filepath)
@@ -202,7 +234,7 @@ namespace codeWithMoshDownloader
         {
             if (lecture.WistiaId?["media"] != null)
             {
-                var downloadInfo = new DownloadInfo
+                var wistiaDownloadInfo = new WistiaDownloadInfo
                 {
                     FileName = lecture.WistiaId["media"]["name"].ToString()
                 };
@@ -215,25 +247,25 @@ namespace codeWithMoshDownloader
                 var attempts = 1;
                 Quality originalQuality = _quality;
 
-                while (downloadInfo.Url == null && attempts < 5)
+                while (wistiaDownloadInfo.Url == null && attempts < 5)
                 {
                     switch (_quality)
                     {
                         case Quality.Sd:
-                            downloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "md_mp4_video", "540p");
+                            wistiaDownloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "md_mp4_video", "540p");
                             break;
                         case Quality.Hd:
-                            downloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "hd_mp4_video", "720p");
+                            wistiaDownloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "hd_mp4_video", "720p");
                             break;
                         case Quality.FullHd:
-                            downloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "hd_mp4_video", "1080p");
+                            wistiaDownloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "hd_mp4_video", "1080p");
                             break;
                         default:
-                            downloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "original", "Original file");
+                            wistiaDownloadInfo.Url = ParseUrlByQuality(lecture.WistiaId, "original", "Original file");
                             break;
                     }
 
-                    if (downloadInfo.Url == null)
+                    if (wistiaDownloadInfo.Url == null)
                     {
                         Console.WriteLine("[download] Failed to find stream at chosen resolution, falling back to alternate stream");
 
@@ -264,36 +296,36 @@ namespace codeWithMoshDownloader
 
                 _quality = originalQuality;
 
-                if (downloadInfo.Url == null)
+                if (wistiaDownloadInfo.Url == null)
                 {
                     Console.WriteLine("[download] Failed to find valid stream");
                     return;
                 }
 
-                Console.WriteLine($"[download] Downloading {downloadInfo.FileName}");
+                Console.WriteLine($"[download] Downloading {wistiaDownloadInfo.FileName}");
 
-                if (!Regex.IsMatch(downloadInfo.FileName, @"^\d+\s*-\s*"))
+                if (!Regex.IsMatch(wistiaDownloadInfo.FileName, @"^\d+\s*-\s*"))
                 {
-                    downloadInfo.FileName = $"{_index + 1} - " + downloadInfo.FileName;
+                    wistiaDownloadInfo.FileName = $"{_index + 1} - " + wistiaDownloadInfo.FileName;
                 }
 
-                string saveLocation = Path.Combine(sectionPath, downloadInfo.FileName);
+                string saveLocation = Path.Combine(sectionPath, wistiaDownloadInfo.FileName);
 
                 var renameIndex = 1;
 
                 while (File.Exists(saveLocation) && _rename)
                 {
-                    if (Regex.IsMatch(downloadInfo.FileName, @"^\(\d+\)"))
+                    if (Regex.IsMatch(wistiaDownloadInfo.FileName, @"^\(\d+\)"))
                     {
-                        downloadInfo.FileName = Regex.Replace(downloadInfo.FileName, @"^\(\d+\)", $"({renameIndex})");
+                        wistiaDownloadInfo.FileName = Regex.Replace(wistiaDownloadInfo.FileName, @"^\(\d+\)", $"({renameIndex})");
                     }
                     else
                     {
-                        downloadInfo.FileName = $"({renameIndex}) " + downloadInfo.FileName;
+                        wistiaDownloadInfo.FileName = $"({renameIndex}) " + wistiaDownloadInfo.FileName;
                     }
 
                     saveLocation = Path
-                        .Combine(sectionPath, downloadInfo.FileName);
+                        .Combine(sectionPath, wistiaDownloadInfo.FileName);
 
                     renameIndex++;
                 }
@@ -309,7 +341,7 @@ namespace codeWithMoshDownloader
                         videoWebClient.DownloadProgressChanged += DownloadProgressChangedHandler;
                         videoWebClient.DownloadFileCompleted += DownloadFileCompletedHandler;
 
-                        await videoWebClient.DownloadFileTaskAsync(new Uri(downloadInfo.Url), saveLocation);
+                        await videoWebClient.DownloadFileTaskAsync(new Uri(wistiaDownloadInfo.Url), saveLocation);
                     }
                 }
             }

@@ -8,7 +8,7 @@
 
 The problem with Youtube-dl in this case is that at the current time of writing it does no organisation of the files, so there'll just be dumped into one big folder. Whereas my tool will sort these into the correct folder and index everything correctly.
 
-Another big reason to use this is that it grabs lecture attachments which youtube-dl doesn't. This includes embedded attachments like PDF's. It will also store text only lectures to html files for your viewing.
+Another big reason to use this is that it grabs lecture attachments which youtube-dl doesn't. This includes embedded attachments like PDF's. It will also store text only lectures and quizzes to html files for your viewing.
 
 #### Credit to Youtube-dl for the output formatting
 

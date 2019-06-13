@@ -30,9 +30,10 @@ Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://c
 
 The URL can be to either a playlist or individual lecture
 
+#### [Requires .Net Core 2.2+](https://dotnet.microsoft.com/download)
+
 ### Dependencies
 
-* .Net Core 2.2+
 * HtmlAgilityPack
 * NewtonsoftJson
 * ByteSize

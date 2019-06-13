@@ -75,7 +75,12 @@ namespace codeWithMoshDownloader
 
                 lecture.Extras.AddRange(GetLectureExtras(attachmentNode, lecture));
 
-                lecture.TextContentList.Add(GetLectureQuiz(attachmentNode));
+                Quiz quiz = GetLectureQuiz(attachmentNode);
+
+                if (quiz != null)
+                {
+                    lecture.TextContentList.Add(quiz);
+                }
             }
 
             return lecture;
@@ -167,13 +172,13 @@ namespace codeWithMoshDownloader
         {
             HtmlNode quizNode;
 
-            if (TryGetNode(attachmentNode, "./div", out HtmlNode nodes))
+            if (TryGetNode(attachmentNode, "./div", out HtmlNode node) && node.Attributes["data-data"] != null)
             {
-                quizNode = nodes;
+                quizNode = node;
             }
             else
             {
-                return new Quiz();
+                return null;
             }
 
             JObject answersJson = JObject.Parse(HttpUtility.HtmlDecode(quizNode.Attributes["data-data"].Value));

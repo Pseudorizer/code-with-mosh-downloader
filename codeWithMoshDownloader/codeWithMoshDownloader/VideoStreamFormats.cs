@@ -83,8 +83,6 @@ namespace codeWithMoshDownloader
 
             var resolutionsSplit = resolution.Split("x");
 
-            var q = json.ToString();
-
             JToken correctFormatBlock = json["media"]["assets"]
                 .Where(x => x["width"]?.Value<string>() == resolutionsSplit[0])
                 .Where(x => x["height"]?.Value<string>() == resolutionsSplit[1])

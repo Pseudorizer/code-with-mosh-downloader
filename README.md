@@ -24,4 +24,11 @@ Another big reason to use this is that it grabs lecture attacthments which youtu
 
 `-s` sets the starting position for a playlist
 
+### Dependencies
+
+* .Net Core 2.2+
+* HtmlAgilityPack
+* NewtonsoftJson
+* ByteSize
+
 ### Note to anyone concerned, this tool does NOT break any protection methods employed by the host site, this tool REQUIRES an account WITH paid access to any content being requested. The host website ALREADY allows downloading of ANY video on said platform, this tool merely automates that process.

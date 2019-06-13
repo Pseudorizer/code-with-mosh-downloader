@@ -37,6 +37,7 @@ namespace codeWithMoshDownloader
                         break;
                     case "-q" when index + 1 < args.Length:
                         arguments.QualitySetting = args[index + 1];
+                        arguments.QualitySetting = Regex.Split(arguments.QualitySetting, @"-\d+$")[0];
                         break;
                     case "-Q":
                         arguments.CheckFormats = true;
@@ -123,7 +124,7 @@ namespace codeWithMoshDownloader
             Console.WriteLine("Usage: dotnet codeWithMoshDownloader.dll [-c -f -q -Q -s [position] URL");
             Console.WriteLine("-c : path to cookies.txt");
             Console.WriteLine("-f : force overwrite of existing files");
-            Console.WriteLine("-q : specify quality code, see -Q on how to get said code, default is original");
+            Console.WriteLine("-q : specify format code or resolution, use -Q to see format codes, resolution I.E. 1280x720");
             Console.WriteLine("-Q : print all available formats for each lecture, to be used with -q");
             Console.WriteLine("-s : sets the starting position in a playlist");
 

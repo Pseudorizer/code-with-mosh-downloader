@@ -27,7 +27,17 @@ namespace codeWithMoshDownloader
             int containerSpace = assets.Max(x => x.Container.Length) + 2; // because of the container text
             int codecSpace = assets.Max(x => x.Codec.Length) + 2;
 
-            foreach (VideoFormat format in assets.OrderBy(x => x.Type))
+            string titles = // ty youtube-dl for the videoFormat!
+                AddSpaces(assets[0].Type, typeSpace) +
+                AddSpaces(assets[0].Extension, extSpace) +
+                AddSpaces(assets[0].Resolution, resolutionSpace) +
+                AddSpaces(assets[0].Bitrate, bitrateSpace) +
+                AddSpaces(assets[0].Container, containerSpace) +
+                AddSpaces(assets[0].Codec, codecSpace) +
+                assets[0].Size;
+            Console.WriteLine(titles);
+
+            foreach (VideoFormat format in assets.Skip(1).OrderBy(x => x.Type))
             {
                 string formatString = // ty youtube-dl for the videoFormat!
                     AddSpaces(format.Type, typeSpace) +
@@ -43,18 +53,44 @@ namespace codeWithMoshDownloader
 
         public static bool TryGetFormat(JObject json, string quality, out VideoFormat videoFormat)
         {
-            if (json["media"]?["assets"] == null)
-            {
-                videoFormat = null;
-                return false;
-            }
+            videoFormat = null;
 
-            JToken correctFormatBlock = json["media"]["assets"]
-                .FirstOrDefault(x => x["type"].Value<string>() == quality);
+            JToken correctFormatBlock = json["media"]?["assets"]
+                ?.FirstOrDefault(x => x["type"].Value<string>() == quality);
 
             if (correctFormatBlock == null)
             {
-                videoFormat = null;
+                return false;
+            }
+
+            videoFormat = new VideoFormat
+            {
+                Url = GetJsonValue<string>(correctFormatBlock, "url"),
+                Size = GetJsonValue<string>(correctFormatBlock, "size")
+            };
+
+            return true;
+        }
+
+        public static bool TryGetFormatByResolution(JObject json, string resolution, out VideoFormat videoFormat)
+        {
+            videoFormat = null;
+
+            if (json["media"]?["assets"] == null)
+            {
+                return false;
+            }
+
+            var resolutionsSplit = resolution.Split("x");
+
+            JToken correctFormatBlock = json["media"]["assets"]
+                .Where(x => x["width"].Value<string>() == resolutionsSplit[0])
+                .Where(x => x["height"].Value<string>() == resolutionsSplit[1])
+                .OrderByDescending(x => x["bitrate"])
+                .FirstOrDefault();
+
+            if (correctFormatBlock == null)
+            {
                 return false;
             }
 
@@ -87,7 +123,7 @@ namespace codeWithMoshDownloader
 
             var titles = new VideoFormat
             {
-                Type = "VideoFormat Name",
+                Type = "Format Code",
                 Extension = "Extension",
                 Resolution = "Resolution",
                 Bitrate = "Bitrate",

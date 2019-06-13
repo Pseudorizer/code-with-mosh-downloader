@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.Models;
 using Newtonsoft.Json.Linq;
@@ -108,6 +109,11 @@ namespace codeWithMoshDownloader
                 videoDownloadResult = await DownloadWistiaVideo(lecture.WistiaId, sectionPath);
             }
 
+            if (_checkFormat)
+            {
+                return;
+            }
+
             if (videoDownloadResult == false && lecture.WistiaId != "")
             {
                 await DownloadFile(lecture.EmbeddedVideo, sectionPath);
@@ -139,7 +145,7 @@ namespace codeWithMoshDownloader
             if (_checkFormat)
             {
                 VideoStreamFormats.DisplayFormats(wistiaJObject);
-                return false;
+                return true;
             }
 
             var downloadInfo = new WistiaDownloadInfo();
@@ -149,10 +155,17 @@ namespace codeWithMoshDownloader
                 downloadInfo.FileName = filename;
             }
 
-            if (VideoStreamFormats.TryGetFormat(wistiaJObject, _quality, out VideoFormat format))
+            bool usingResolution = Regex.IsMatch(_quality, @"\d+x\d+");
+
+            if (!usingResolution && VideoStreamFormats.TryGetFormat(wistiaJObject, _quality, out VideoFormat format))
             {
                 downloadInfo.Url = format.Url;
                 downloadInfo.FileSize = long.Parse(format.Size);
+            }
+            else if (usingResolution && VideoStreamFormats.TryGetFormatByResolution(wistiaJObject, _quality, out VideoFormat formatByResolution))
+            {
+                downloadInfo.Url = formatByResolution.Url;
+                downloadInfo.FileSize = long.Parse(formatByResolution.Size);
             }
             else if (_quality != "original" && VideoStreamFormats.TryGetFormat(wistiaJObject, "original", out VideoFormat originalFormat))
             {
@@ -184,6 +197,7 @@ namespace codeWithMoshDownloader
 
             if (File.Exists(filePath) && !_force)
             {
+
                 Console.WriteLine("[download] File already exists");
                 return true;
             }

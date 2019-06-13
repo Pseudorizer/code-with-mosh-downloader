@@ -49,7 +49,15 @@ namespace codeWithMoshDownloader
                 }
             }
 
-            arguments.Url = new Uri(args.Last());
+            if (Uri.TryCreate(args.Last(), UriKind.Absolute, out Uri uri))
+            {
+                arguments.Url = uri;
+            }
+            else
+            {
+                Console.WriteLine("[error] URL supplied was invalid");
+                Environment.Exit(1);
+            }
 
             if (arguments.Url.Host != "codewithmosh.com")
             {

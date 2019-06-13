@@ -86,6 +86,7 @@ namespace codeWithMoshDownloader
             JToken correctFormatBlock = json["media"]["assets"]
                 .Where(x => x["width"]?.Value<string>() == resolutionsSplit[0])
                 .Where(x => x["height"]?.Value<string>() == resolutionsSplit[1])
+                .Where(x => x["type"]?.Value<string>() != "original")
                 .OrderByDescending(x => x["bitrate"])
                 .FirstOrDefault();
 

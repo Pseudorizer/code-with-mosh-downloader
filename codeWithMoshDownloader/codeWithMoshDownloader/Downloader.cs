@@ -1,4 +1,6 @@
-﻿using System;
+﻿using codeWithMoshDownloader.Models;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -6,8 +8,6 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using codeWithMoshDownloader.Models;
-using Newtonsoft.Json.Linq;
 using static codeWithMoshDownloader.Helpers;
 
 namespace codeWithMoshDownloader
@@ -132,7 +132,7 @@ namespace codeWithMoshDownloader
                 string filePath = Path.Combine(sectionPath, lectureTextArea.FileName);
 
                 File.Create(filePath).Close();
-                
+
                 File.WriteAllText(filePath, lectureTextArea.Html);
             }
         }
@@ -236,20 +236,20 @@ namespace codeWithMoshDownloader
 
                 webClient.DownloadFileCompleted += (sender, args) =>
                 {
-                    ClearLine();
+                    Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
 
                     if (args.Error != null)
                     {
-                        Console.Write("\r[download] Download failed\n");
+                        Console.Write("[download] Download failed\n");
                     }
                     else if (!args.Cancelled)
                     {
                         result = true;
-                        Console.Write("\r[download] Download complete\n");
+                        Console.Write("[download] Download complete\n");
                     }
                     else
                     {
-                        Console.Write("\r[download] Download cancelled\n");
+                        Console.Write("[download] Download cancelled\n");
                     }
                 };
 
@@ -267,9 +267,10 @@ namespace codeWithMoshDownloader
             {
                 string downloaded = ((args.BytesReceived / 1024f) / 1024f).ToString("#0.##");
                 string total = ((args.TotalBytesToReceive / 1024f) / 1024f).ToString("#0.##");
-                ClearLine();
 
-                Console.Write($"\r[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)");
+                Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
+
+                Console.Write($"[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)");
             }
         }
     }

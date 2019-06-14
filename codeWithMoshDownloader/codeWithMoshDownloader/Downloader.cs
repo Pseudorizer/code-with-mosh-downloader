@@ -236,7 +236,7 @@ namespace codeWithMoshDownloader
 
                 webClient.DownloadFileCompleted += (sender, args) =>
                 {
-                    Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
+                    ClearLine();
 
                     if (args.Error != null)
                     {
@@ -263,12 +263,12 @@ namespace codeWithMoshDownloader
         {
             _downloadCounter++;
 
-            if (_downloadCounter % 500 == 0)
+            if (_downloadCounter % 250 == 0)
             {
                 string downloaded = ((args.BytesReceived / 1024f) / 1024f).ToString("#0.##");
                 string total = ((args.TotalBytesToReceive / 1024f) / 1024f).ToString("#0.##");
 
-                Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
+                ClearLine();
 
                 Console.Write($"[download] {downloaded}MB of {total}MB ({args.ProgressPercentage}%)");
             }

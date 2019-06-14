@@ -149,10 +149,7 @@ namespace codeWithMoshDownloader
 
         public static void ClearLine()
         {
-            int currentCursorPosition = Console.CursorTop;
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write(new string(' ', Console.WindowWidth));
-            Console.SetCursorPosition(0, currentCursorPosition);
+            Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
         }
     }
 }

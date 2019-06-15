@@ -10,15 +10,15 @@ The problem with Youtube-dl in this case is that at the current time of writing 
 
 Another big reason to use this is that it grabs lecture attachments which youtube-dl doesn't. This includes embedded attachments like PDF's. It will also store text only lectures and quizzes to html files for your viewing.
 
-#### Credit to Youtube-dl for the output formatting
+#### Credit to Youtube-dl for the output formatting style
 
 ![Formats](https://i.imgur.com/zGFc4n1.png)
 
-##### Usage: `dotnet codeWithMoshDownloader.dll [-c [VAL] -f -q [VAL] -Q -s [VAL]] URL`
+##### Usage: `dotnet codeWithMoshDownloader.dll [args] URL`
 
 Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://codewithmosh.com/courses/enrolled/228831`
 
-`-c [VAL]` path to cookies.txt - this is required, you cannot use the tool using a username/password, there are many extensions that can do this for you
+`-c [VAL]` path to cookies.txt - this is required, you cannot use the tool using a username/password, there are many extensions that can get your cookies for you
 
 `-f` force overwriting of existing files
 
@@ -27,6 +27,8 @@ Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://c
 `-Q` will print all formats for each lecture, similar to youtube-dl's -F
 
 `-s [VAL]` sets the starting position for a playlist
+
+`-z` auto extract zip archives
 
 The URL can be to either a playlist or individual lecture
 

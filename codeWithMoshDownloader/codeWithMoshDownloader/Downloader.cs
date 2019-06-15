@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static codeWithMoshDownloader.Helpers;
@@ -197,16 +198,20 @@ namespace codeWithMoshDownloader
 
             Console.WriteLine($"[download] Downloading {downloadInfo.FileName}");
 
+            HttpResponseMessage fileHeadRequest = await SimpleHead(downloadInfo.Url);
+
+            var downloadSize = fileHeadRequest.Content.Headers.ContentLength;
+
             string filePath = Path.Combine(sectionPath, downloadInfo.FileName);
 
-            if (File.Exists(filePath) && !_force)
+            if (FileExists(filePath, downloadSize))
             {
-
-                Console.WriteLine("[download] File already exists");
                 return true;
             }
 
             bool result = await DownloadClient(downloadInfo.Url, filePath);
+
+            result = VerifyDownload(result, filePath, downloadSize);
 
             if (result && _unZip && Path.GetExtension(downloadInfo.FileName) == ".zip")
             {
@@ -214,6 +219,42 @@ namespace codeWithMoshDownloader
             }
 
             return result;
+        }
+
+        private static bool VerifyDownload(bool result, string filePath, long? downloadSize)
+        {
+            if (result)
+            {
+                long fileSize = new FileInfo(filePath).Length;
+
+                if (downloadSize != fileSize)
+                {
+                    Console.WriteLine("[download] Download failed\n");
+                    result = false;
+                }
+                else
+                {
+                    Console.Write("[download] Download complete\n");
+                }
+            }
+
+            return result;
+        }
+
+        private bool FileExists(string filePath, long? downloadSize)
+        {
+            if (File.Exists(filePath) && !_force)
+            {
+                long fileSize = new FileInfo(filePath).Length;
+
+                if (downloadSize == fileSize)
+                {
+                    Console.WriteLine("[download] File already exists");
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void UnZipArchive(string sectionPath, string filePath)
@@ -282,20 +323,18 @@ namespace codeWithMoshDownloader
             wistiaDownloadInfo.FileName = AddIndex(wistiaDownloadInfo.FileName, _currentItemIndex).GetSafeFilename();
             string filePath = Path.Combine(sectionPath, wistiaDownloadInfo.FileName);
 
-            if (File.Exists(filePath) && !_force)
+            if (FileExists(filePath, wistiaDownloadInfo.FileSize))
             {
-                long fileSize = new FileInfo(filePath).Length;
-
-                if (fileSize == wistiaDownloadInfo.FileSize)
-                {
-                    Console.WriteLine("[download] File already exists");
-                    return true;
-                }
+                return true;
             }
 
             Console.WriteLine($"[download] Downloading {wistiaDownloadInfo.FileName}");
 
-            return await DownloadClient(wistiaDownloadInfo.Url, filePath);
+            bool result = await DownloadClient(wistiaDownloadInfo.Url, filePath);
+
+            result = VerifyDownload(result, filePath, wistiaDownloadInfo.FileSize);
+
+            return result;
         }
 
         private async Task<bool> DownloadClient(string url, string filepath)
@@ -316,7 +355,6 @@ namespace codeWithMoshDownloader
                     else if (!args.Cancelled)
                     {
                         result = true;
-                        Console.Write("[download] Download complete\n");
                     }
                     else
                     {

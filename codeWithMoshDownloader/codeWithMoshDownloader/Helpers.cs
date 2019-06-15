@@ -25,6 +25,17 @@ namespace codeWithMoshDownloader
             }
         }
 
+        public static async Task<HttpResponseMessage> SimpleHead(string url)
+        {
+            using (var request = new HttpRequestMessage(HttpMethod.Head, url))
+            {
+                using (HttpResponseMessage response = await HttpClient.SendAsync(request))
+                {
+                    return response;
+                }
+            }
+        }
+
         public static string GetSafeFilename(this string filename)
         {
             return string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));

@@ -10,7 +10,7 @@ The problem with Youtube-dl in this case is that at the current time of writing 
 
 Another big reason to use this is that it grabs lecture attachments which youtube-dl doesn't. This includes embedded attachments like PDF's. It will also store text only lectures and quizzes to html files for your viewing.
 
-#### Credit to Youtube-dl for the output formatting
+#### Credit to Youtube-dl for the output formatting style
 
 ![Formats](https://i.imgur.com/zGFc4n1.png)
 

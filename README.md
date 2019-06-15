@@ -28,6 +28,8 @@ Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://c
 
 `-s [VAL]` sets the starting position for a playlist
 
+`-z` auto extract zip archives
+
 The URL can be to either a playlist or individual lecture
 
 #### [Requires .Net Core 2.2+](https://dotnet.microsoft.com/download)

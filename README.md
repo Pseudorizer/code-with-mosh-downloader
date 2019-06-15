@@ -18,7 +18,7 @@ Another big reason to use this is that it grabs lecture attachments which youtub
 
 Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://codewithmosh.com/courses/enrolled/228831`
 
-`-c [VAL]` path to cookies.txt - this is required, you cannot use the tool using a username/password, there are many extensions that can do this for you
+`-c [VAL]` path to cookies.txt - this is required, you cannot use the tool using a username/password, there are many extensions that can get your cookies for you
 
 `-f` force overwriting of existing files
 

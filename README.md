@@ -14,7 +14,7 @@ Another big reason to use this is that it grabs lecture attachments which youtub
 
 ![Formats](https://i.imgur.com/zGFc4n1.png)
 
-##### Usage: `dotnet codeWithMoshDownloader.dll [-c [VAL] -f -q [VAL] -Q -s [VAL]] URL`
+##### Usage: `dotnet codeWithMoshDownloader.dll [args] URL`
 
 Example: `dotnet codeWithMoshDownloader.dll -c cookies.txt -q 1280x720 https://codewithmosh.com/courses/enrolled/228831`
 

@@ -234,12 +234,11 @@ namespace codeWithMoshDownloader
                 string filename = Path.GetFileName(file);
                 string newFilename = Path.Combine(tempDirectory, AddIndex(filename, _currentItemIndex));
 
-                if (File.Exists(newFilename))
+                if (!File.Exists(newFilename))
                 {
-                    continue;
+                    File.Move(file, newFilename);
                 }
 
-                File.Move(file, newFilename);
                 string newSectionPath = Path.Combine(sectionPath, AddIndex(filename, _currentItemIndex));
 
                 if (!File.Exists(newSectionPath))
@@ -260,12 +259,11 @@ namespace codeWithMoshDownloader
 
                 string newTempDirectoryName = Path.Combine(tempDirectory, AddIndex(name, _currentItemIndex));
 
-                if (Directory.Exists(newTempDirectoryName))
+                if (!Directory.Exists(newTempDirectoryName))
                 {
-                    continue;
+                    Directory.Move(directory, newTempDirectoryName);
                 }
 
-                Directory.Move(directory, newTempDirectoryName);
                 string newSectionPath = Path.Combine(sectionPath, AddIndex(name, _currentItemIndex));
 
                 if (!Directory.Exists(newSectionPath))

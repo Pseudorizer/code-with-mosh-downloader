@@ -211,7 +211,10 @@ namespace codeWithMoshDownloader
 
             bool result = await DownloadClient(downloadInfo.Url, filePath);
 
-            result = VerifyDownload(result, filePath, downloadSize);
+            if (result)
+            {
+                result = VerifyDownload(filePath, downloadSize);
+            }
 
             if (result && _unZip && Path.GetExtension(downloadInfo.FileName) == ".zip")
             {
@@ -221,24 +224,18 @@ namespace codeWithMoshDownloader
             return result;
         }
 
-        private static bool VerifyDownload(bool result, string filePath, long? downloadSize)
+        private static bool VerifyDownload(string filePath, long? downloadSize)
         {
-            if (result)
-            {
-                long fileSize = new FileInfo(filePath).Length;
+            long fileSize = new FileInfo(filePath).Length;
 
-                if (downloadSize != fileSize)
-                {
-                    Console.WriteLine("[download] Download failed\n");
-                    result = false;
-                }
-                else
-                {
-                    Console.Write("[download] Download complete\n");
-                }
+            if (downloadSize != fileSize)
+            {
+                Console.WriteLine("[download] Download failed\n");
+                return false;
             }
 
-            return result;
+            Console.Write("[download] Download complete\n");
+            return true;
         }
 
         private bool FileExists(string filePath, long? downloadSize)
@@ -332,7 +329,10 @@ namespace codeWithMoshDownloader
 
             bool result = await DownloadClient(wistiaDownloadInfo.Url, filePath);
 
-            result = VerifyDownload(result, filePath, wistiaDownloadInfo.FileSize);
+            if (result)
+            {
+                result = VerifyDownload(filePath, wistiaDownloadInfo.FileSize);
+            }
 
             return result;
         }

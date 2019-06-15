@@ -8,6 +8,8 @@ namespace codeWithMoshDownloader.Models
 
         public bool CheckFormats { get; set; }
 
+        public bool UnZip { get; set; }
+
         public string CookiesPath { get; set; }
 
         public int StartingPosition { get; set; } = 0;

@@ -46,6 +46,9 @@ namespace codeWithMoshDownloader
                             arguments.StartingPosition = y <= 0 ? 0 : y - 1;
                         }
                         break;
+                    case "-z":
+                        arguments.UnZip = true;
+                        break;
                 }
             }
 
@@ -130,7 +133,7 @@ namespace codeWithMoshDownloader
             Console.WriteLine("-q : specify format code or resolution, use -Q to see format codes, resolution I.E. 1280x720");
             Console.WriteLine("-Q : print all available formats for each lecture, to be used with -q");
             Console.WriteLine("-s : sets the starting position in a playlist");
-
+            Console.WriteLine("-z : auto extract zipped files");
         }
     }
 }

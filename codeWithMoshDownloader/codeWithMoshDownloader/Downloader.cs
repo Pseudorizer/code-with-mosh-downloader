@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -19,6 +20,7 @@ namespace codeWithMoshDownloader
         private int _downloadCounter;
         private bool _checkFormat;
         private bool _force;
+        private bool _unZip;
         private string _quality;
         private int _currentItemIndex = 1;
 
@@ -38,6 +40,7 @@ namespace codeWithMoshDownloader
             _quality = arguments.QualitySetting;
             _force = arguments.Force;
             _checkFormat = arguments.CheckFormats;
+            _unZip = arguments.UnZip;
 
             ReadOnlyCollection<string> sectionList = lecturePageList
                 .GroupBy(x => x.SectionName)
@@ -203,7 +206,77 @@ namespace codeWithMoshDownloader
                 return true;
             }
 
-            return await DownloadClient(downloadInfo.Url, filePath);
+            bool result = await DownloadClient(downloadInfo.Url, filePath);
+
+            if (result && _unZip && Path.GetExtension(downloadInfo.FileName) == ".zip")
+            {
+                UnZipArchive(sectionPath, filePath);
+            }
+
+            return result;
+        }
+
+        private void UnZipArchive(string sectionPath, string filePath)
+        {
+            Console.WriteLine("[download] Unzipping archive");
+
+            string tempDirectory = Path.Combine(sectionPath, "temp");
+
+            if (!Directory.Exists(tempDirectory))
+            {
+                Directory.CreateDirectory(tempDirectory);
+            }
+
+            ZipFile.ExtractToDirectory(filePath, tempDirectory, true);
+
+            foreach (string file in Directory.GetFiles(tempDirectory))
+            {
+                string filename = Path.GetFileName(file);
+                string newFilename = Path.Combine(tempDirectory, AddIndex(filename, _currentItemIndex));
+
+                if (File.Exists(newFilename))
+                {
+                    continue;
+                }
+
+                File.Move(file, newFilename);
+                string newSectionPath = Path.Combine(sectionPath, AddIndex(filename, _currentItemIndex));
+
+                if (!File.Exists(newSectionPath))
+                {
+                    File.Move(newFilename, newSectionPath);
+                }
+            }
+
+            foreach (string directory in Directory.GetDirectories(tempDirectory))
+            {
+                string name = new DirectoryInfo(directory).Name;
+
+                if (name == "__MACOSX")
+                {
+                    Directory.Delete(directory, true);
+                    continue;
+                }
+
+                string newTempDirectoryName = Path.Combine(tempDirectory, AddIndex(name, _currentItemIndex));
+
+                if (Directory.Exists(newTempDirectoryName))
+                {
+                    continue;
+                }
+
+                Directory.Move(directory, newTempDirectoryName);
+                string newSectionPath = Path.Combine(sectionPath, AddIndex(name, _currentItemIndex));
+
+                if (!Directory.Exists(newSectionPath))
+                {
+                    Directory.Move(newTempDirectoryName, newSectionPath);
+                }
+            }
+
+            Directory.Delete(tempDirectory, true);
+
+            File.Delete(filePath);
         }
 
         private async Task<bool> DownloadFile(WistiaDownloadInfo wistiaDownloadInfo, string sectionPath) // these method names are terrible

@@ -131,7 +131,7 @@ namespace codeWithMoshDownloader
 
             foreach (HtmlFile lectureTextArea in lecture.HtmlFiles)
             {
-                lectureTextArea.FileName = AddIndex(lectureTextArea.FileName, _currentItemIndex);
+                lectureTextArea.FileName = AddIndex(lectureTextArea.FileName.GetSafeFilename(), _currentItemIndex);
 
                 string filePath = Path.Combine(sectionPath, lectureTextArea.FileName);
 

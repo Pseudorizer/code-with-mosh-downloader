@@ -17,7 +17,9 @@
     "semi": "error",
     "quotes": ["error", "single"],
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "no-mixed-spaces-and-tabs": "off"
+    "no-mixed-spaces-and-tabs": "off",
+    "@typescript-eslint/prefer-namespace-keyword": "off",
+    "@typescript-eslint/no-namespace": "off"
   },
   "parser": "@typescript-eslint/parser",
   "settings": {

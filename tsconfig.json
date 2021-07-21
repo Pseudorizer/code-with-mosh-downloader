@@ -14,7 +14,8 @@
       "App/*": ["app/*"],
       "Types/*": ["app/types/*"],
       "Src/*": ["./*"],
-      "Main/*": ["main/*"]
+      "Main/*": ["main/*"],
+      "MainTypes/*": ["main/types/*"]
     },
     "typeRoots": [
       "node_modules/@types",

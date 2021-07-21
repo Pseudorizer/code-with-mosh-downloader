@@ -2,7 +2,7 @@ import {DownloadQueueItem} from 'Types/types';
 import AsyncLock from 'async-lock';
 import * as events from 'events';
 
-let queue: DownloadQueueItem[];
+const queue: DownloadQueueItem[] = [];
 const lock = new AsyncLock();
 
 const QUEUE_KEY = 'QUEUE_KEY';

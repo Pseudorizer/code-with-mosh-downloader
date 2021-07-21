@@ -16,7 +16,7 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>();
 
   const onAdd = async () => {
-    const a = await ipcRenderer.invoke('to-enqueue', {url: 'https://codewithmosh.com/courses'});
+    const a = await ipcRenderer.invoke('to-enqueue', {url: 'https://codewithmosh.com/courses', type: 'everything'});
   };
 
   return (

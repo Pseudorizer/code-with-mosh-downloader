@@ -4,7 +4,7 @@
   "description": "Download courses from codewithmosh.com",
   "main": ".webpack/main",
   "scripts": {
-    "start": "electron-rebuild && electron-forge start",
+    "start": "electron-rebuild && electron-forge start --inspect-electron",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",

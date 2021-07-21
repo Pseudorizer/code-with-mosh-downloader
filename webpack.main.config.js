@@ -14,7 +14,8 @@ module.exports = {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json'],
     alias: {
       'Src': path.resolve(__dirname, './src'),
-      'Main': path.resolve(__dirname, './src/main')
+      'Main': path.resolve(__dirname, './src/main'),
+      'MainTypes': path.resolve(__dirname, './src/main/types')
     }
   }
 };

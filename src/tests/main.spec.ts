@@ -1,6 +1,6 @@
 import {Application} from 'spectron';
 import assert from 'assert';
-import {describe} from 'mocha';
+import {describe, it} from 'mocha';
 
 declare module 'mocha' {
   export interface Context {

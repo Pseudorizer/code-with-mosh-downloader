@@ -1,0 +1,15 @@
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-node@master
+        with:
+          node-version: '16'
+          cache: 'yarn'
+      - run: yarn install
+      - name: Build
+        run: yarn run make -p win32

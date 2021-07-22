@@ -68,10 +68,10 @@ jobs:
           prerelease: true
           title: "v${{ env.PACKAGE_VERSION }}"
           files: |
-            out/make/deb/x64/code-with-mosh-downloader_*_amd64.deb
-            out/make/flatpak/x86_64/io.atom.electron.code-with-mosh-downloader_stable_x86_64.flatpak
-            out/make/rpm/x64/code-with-mosh-downloader-*.x86_64.rpm
-            out/make/squirrel.windows/x64/code-with-mosh-downloader-* Setup.exe
+            deb/x64/*.deb
+            flatpak/x86_64/io.atom.electron.code-with-mosh-downloader_stable_x86_64.flatpak
+            rpm/x64/*.rpm
+            squirrel.windows/x64/*.exe
       - uses: elgohr/Github-Release-Action@master
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

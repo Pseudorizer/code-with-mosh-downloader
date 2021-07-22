@@ -28,12 +28,11 @@ jobs:
         with:
           node-version: '16'
           cache: 'yarn'
-      - run: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install fakeroot dpkg flatpak-builder unzip zip rpm nodejs git python make gcc g++ elfutils wine -y
+      - run: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install fakeroot flatpak-builder rpm elfutils wine -y
       - run: sudo flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive runtime/org.freedesktop.Sdk/x86_64/19.08
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive runtime/org.freedesktop.Platform/x86_64/19.08
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive app/org.electronjs.Electron2.BaseApp/x86_64/stable
-      - run: npm i -g yarn
       - run: yarn install
       - name: Build linux
         run: yarn run make -p linux
@@ -61,7 +60,6 @@ jobs:
         with:
           name: artifacts_linux
       - uses: "marvinpinto/action-automatic-releases@latest"
-        id: create_release
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"
@@ -72,8 +70,3 @@ jobs:
             flatpak/**/*.flatpak
             rpm/**/*.rpm
             squirrel.windows/**/*.exe
-      - uses: elgohr/Github-Release-Action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        with:
-          args: 'An unstable and potentially defunct dev build'

@@ -62,18 +62,19 @@ jobs:
           name: artifacts_linux
       - run: ls -l
       - uses: "marvinpinto/action-automatic-releases@latest"
+        id: create-release
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"
           prerelease: true
           title: "v${{ env.PACKAGE_VERSION }}"
           files: |
-            deb/x64/*.deb
-            flatpak/x86_64/io.atom.electron.code-with-mosh-downloader_stable_x86_64.flatpak
-            rpm/x64/*.rpm
-            squirrel.windows/x64/*.exe
-      - uses: elgohr/Github-Release-Action@master
+            deb/**/*.deb
+            flatpak/**/*.flatpak
+            rpm/**/*.rpm
+            squirrel.windows/**/*.exe
+      - uses: eregon/publish-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: An unstable and potentially defunct pre-relase build
+          release_id: ${{ steps.create_release.outputs.automatic_releases_tag }}

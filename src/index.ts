@@ -10,6 +10,7 @@ import {loadDownloadWatcherHandlers} from 'Main/downloadWatcher';
 // plugin that tells the Electron app where to look for the Webpack-bundled app code (depending on
 // whether you're running in development or production).
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
+declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -20,17 +21,36 @@ let settings: Settings;
 
 const createWindow = (): void => {
   // Create the browser window.
+  /*const mainWindow = new BrowserWindow({
+    height: 720,
+    width: 1280,
+    webPreferences: {
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      nodeIntegration: true,
+      enableRemoteModule: true,
+      contextIsolation: true,
+      nodeIntegrationInWorker: false,
+      nodeIntegrationInSubFrames: false,
+    }
+  });*/
+
+  // can't figure out how to get preloading and nodeIntegration = false to play nice and successfully render without require is undefined
+  // i'm pretty sure it's something to do with webpack
+  // i think this is breaking spectron/mocha as well
   const mainWindow = new BrowserWindow({
     height: 720,
     width: 1280,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      enableRemoteModule: true,
+      contextIsolation: false,
     }
   });
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+  console.log(MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, MAIN_WINDOW_WEBPACK_ENTRY);
 
   defineExtensions();
 

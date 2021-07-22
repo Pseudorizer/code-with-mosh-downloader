@@ -62,7 +62,7 @@ jobs:
           name: artifacts_linux
       - run: ls -l
       - uses: "marvinpinto/action-automatic-releases@latest"
-        id: create-release
+        id: create_release
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"

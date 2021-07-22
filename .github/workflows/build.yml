@@ -60,7 +60,6 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: artifacts_linux
-      - run: ls -l
       - uses: "marvinpinto/action-automatic-releases@latest"
         id: create_release
         with:
@@ -73,8 +72,8 @@ jobs:
             flatpak/**/*.flatpak
             rpm/**/*.rpm
             squirrel.windows/**/*.exe
-      - uses: eregon/publish-release@v1
+      - uses: elgohr/Github-Release-Action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
-          release_id: ${{ steps.create_release.outputs.automatic_releases_tag }}
+          args: 'An unstable and potentially defunct dev build'

@@ -32,7 +32,6 @@ jobs:
       - run: sudo flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive runtime/org.freedesktop.Sdk/x86_64/19.08
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive runtime/org.freedesktop.Platform/x86_64/19.08
-      - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive runtime/org.freedesktop.Platform/x86_64/19.08
       - run: sudo flatpak install --system --no-deps --assumeyes --noninteractive app/org.electronjs.Electron2.BaseApp/x86_64/stable
       - run: npm i -g yarn
       - run: yarn install
@@ -53,15 +52,6 @@ jobs:
       - run: sudo chmod +x sd
       - run: sudo apt-get update && sudo apt-get install jq -y
       - run: echo "PACKAGE_VERSION=$(cat package.json | jq -r '.version' | ./sd '\.' '')" >> $GITHUB_ENV
-      - name: Check if should publish release
-        run: exit 1
-        if: ${{ env.PACKAGE_VERSION }} < 100
-      - uses: actions/setup-node@master
-        with:
-          node-version: '16'
-          cache: 'yarn'
-      - run: npm i -g yarn
-      - run: yarn
       - uses: actions/download-artifact@v2
         with:
           name: artifacts_linux

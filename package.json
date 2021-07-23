@@ -1,6 +1,6 @@
 {
   "name": "code-with-mosh-downloader",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Download courses from codewithmosh.com",
   "main": ".webpack/main",
   "scripts": {

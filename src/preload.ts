@@ -46,9 +46,6 @@ const api = {
   },
 };
 
-window.require = require;
-window.api = api;
-
 if (process.env.NODE_ENV === 'test') {
   window.require = require;
   window.api = api;

@@ -80,11 +80,6 @@ export class CourseParser implements ITypeParser {
 	const parsedRows: ParsedItem[] = [];
 
 	rows.forEach(row => {
-	  const titleElement = row.querySelector('.section-title').textContent.trimLeft();
-
-	  // spaces used in html aren't actual spaces but some other character
-	  const title = /^([\w\s]+) \(/g.exec(titleElement)[1].replace(' ', ' ');
-
 	  const lectures = row.querySelectorAll('.section-list > li > a').map(x => x.getAttribute('href'));
 
 	  const parsedUrls = lectures.map(x => (

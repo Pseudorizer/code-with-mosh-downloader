@@ -6,6 +6,8 @@ jobs:
     runs-on: ubuntu-latest
     # skip whilst tests are broken
     if: ${{ 'true' == 'false' }}
+    env:
+      NODE_ENV: 'test'
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-node@master

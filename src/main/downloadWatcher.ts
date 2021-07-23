@@ -2,8 +2,8 @@ import {downloadEvent, getNextDownloadItem} from 'Main/downloadQueue';
 import AsyncLock from 'async-lock';
 import {DownloadQueueItem} from 'Types/types';
 import {parsePageFromUrl} from 'Main/pageParser';
-import {ParsedItem, WistiaMedia} from 'MainTypes/types';
-import {get} from 'Main/client';
+import {ParsedItem} from 'MainTypes/types';
+import {getMediaOptionsForVideo} from 'Main/utilityFunctions';
 
 let downloadActive = false;
 const lock = new AsyncLock();
@@ -54,12 +54,4 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
   await lock.acquire(WATCHER_KEY, () => {
 	downloadActive = false;
   });
-}
-
-async function getMediaOptionsForVideo(url: string) {
-  const videoParsed = await parsePageFromUrl(url, 'video');
-
-  const mediaJson = await get(videoParsed[0].nextUrl);
-
-  const wistiaMedia = JSON.parse(mediaJson) as WistiaMedia;
 }

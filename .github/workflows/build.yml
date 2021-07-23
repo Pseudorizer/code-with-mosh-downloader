@@ -56,15 +56,22 @@ jobs:
       - uses: actions/checkout@master
       - run: sudo apt-get update && sudo apt-get install jq -y
       - run: echo "PACKAGE_VERSION=$(cat package.json | jq -r '.version')" >> $GITHUB_ENV
+      - name: Get previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 1.0.0
       - uses: actions/download-artifact@v2
+        if: ${{ steps.previoustag.outputs.tag }} != ${{ env.PACKAGE_VERSION }}
         with:
           name: artifacts_linux
       - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{ steps.previoustag.outputs.tag }} != ${{ env.PACKAGE_VERSION }}
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"
+          automatic_release_tag: "${{ env.PACKAGE_VERSION }}"
           prerelease: true
-          title: "v${{ env.PACKAGE_VERSION }}"
+          title: "${{ env.PACKAGE_VERSION }}"
           files: |
             deb/**/*.deb
             flatpak/**/*.flatpak

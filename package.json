@@ -1,6 +1,6 @@
 {
   "name": "code-with-mosh-downloader",
-  "version": "0.0.3",
+  "version": "0.0.2",
   "description": "Download courses from codewithmosh.com",
   "main": ".webpack/main",
   "scripts": {
@@ -21,7 +21,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "electron_test"
+            "name": "electron_tes"
           }
         },
         {

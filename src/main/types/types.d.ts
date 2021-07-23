@@ -28,5 +28,6 @@ export type WistiaAsset = {
   codec: string,
   url: string,
   width: number,
-  height: number
+  height: number,
+  type: string
 }

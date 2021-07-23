@@ -2,6 +2,7 @@ import {Settings} from 'Types/types';
 import fsAsync from 'fs/promises';
 import {setSessionCookie, validateSession} from 'Main/client';
 import {dialog} from 'electron';
+import {RethrownError} from 'Main/errors';
 
 export let settings: Settings;
 

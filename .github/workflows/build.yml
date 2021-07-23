@@ -71,9 +71,9 @@ jobs:
         if: ${{ steps.previoustag.outputs.tag }} != ${{ env.PACKAGE_VERSION }}
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ env.PACKAGE_VERSION }}"
+          automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"
           prerelease: true
-          title: "${{ env.PACKAGE_VERSION }}"
+          title: "v${{ env.PACKAGE_VERSION }}"
           files: |
             deb/**/*.deb
             flatpak/**/*.flatpak

@@ -3,7 +3,8 @@ import AsyncLock from 'async-lock';
 import {DownloadQueueItem} from 'Types/types';
 import {parsePageFromUrl} from 'Main/pageParser';
 import {ParsedItem} from 'MainTypes/types';
-import {getMediaOptionsForVideo} from 'Main/utilityFunctions';
+import {getClosestQuality, getMediaOptionsForVideo} from 'Main/utilityFunctions';
+import {settings} from 'Main/loadSettings';
 
 let downloadActive = false;
 const lock = new AsyncLock();
@@ -48,6 +49,7 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 
 	for (const video of videoUrls) {
 	  const f = await getMediaOptionsForVideo(video.nextUrl);
+	  const k = getClosestQuality(f, settings.resolution);
 	}
   }
 

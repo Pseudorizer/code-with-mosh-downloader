@@ -1,6 +1,5 @@
 import {app, BrowserWindow} from 'electron';
 import loadIpcHandlers from 'Main/ipcHandlers';
-import {Settings} from 'Types/types';
 import defineExtensions from 'Main/extensions';
 import {loadDownloadWatcherHandlers} from 'Main/downloadWatcher';
 import {loadSettings} from 'Main/loadSettings';
@@ -15,8 +14,6 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
 }
-
-let settings: Settings;
 
 const createWindow = (): void => {
   // Create the browser window.
@@ -48,8 +45,6 @@ const createWindow = (): void => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  console.log(MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, MAIN_WINDOW_WEBPACK_ENTRY);
 
   defineExtensions();
 

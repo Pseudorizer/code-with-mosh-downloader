@@ -1,9 +1,9 @@
 export type Settings = {
   sessionCookie: string,
-  defaultResolution: DefaultResolution
+  resolution: Resolution
 }
 
-export type DefaultResolution = {
+export type Resolution = {
   width: number,
   height: number
 }

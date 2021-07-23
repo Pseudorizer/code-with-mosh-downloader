@@ -1,4 +1,4 @@
-class RethrownError extends Error {
+export class RethrownError extends Error {
   original_error: Error;
   stack_before_rethrow: string;
 

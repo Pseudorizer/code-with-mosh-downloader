@@ -9,10 +9,9 @@ export async function loadSettings() {
   try {
 	await fsAsync.stat('settings.json');
   } catch (e) {
-	await fsAsync.writeFile(
-	  'settings.json',
-	  JSON.stringify({sessionCookie: '', defaultResolution: {width: 1920, height: 1080}}, null, 2)
-	);
+    const err = e as Error;
+    dialog.showErrorBox('Error', 'Settings.json missing. Be sure to rename settings.json.template to settings.json');
+    throw new RethrownError(err.message, err);
   }
 
   const settingsBuffer = await fsAsync.readFile('settings.json');

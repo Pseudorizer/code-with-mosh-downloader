@@ -20,9 +20,7 @@
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "electron_tes"
-          }
+          "config": {}
         },
         {
           "name": "@electron-forge/maker-deb",

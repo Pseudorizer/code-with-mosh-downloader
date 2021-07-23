@@ -1,5 +1,11 @@
 export type Settings = {
-  sessionCookie: string
+  sessionCookie: string,
+  defaultResolution: DefaultResolution
+}
+
+export type DefaultResolution = {
+  width: number,
+  height: number
 }
 
 export type DownloadQueueItem = {

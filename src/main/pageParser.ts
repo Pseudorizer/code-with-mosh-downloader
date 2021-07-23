@@ -5,11 +5,11 @@ import {ITypeParser, ParsedItem} from 'MainTypes/types';
 
 export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
   if (!type) {
-    return null;
+	return null;
   }
 
   if (url.indexOf('http://') === -1 || url.indexOf('https://') === -1) {
-    url = new URL(url, 'https://codewithmosh.com').href;
+	url = new URL(url, 'https://codewithmosh.com').href;
   }
 
   const response = await get(url);
@@ -62,7 +62,7 @@ export class EverythingParser implements ITypeParser {
 	  ));
 
 	  if (i === 0) {
-	    // skip first course which is the all access one
+		// skip first course which is the all access one
 		courseUrls = courseUrls.slice(1);
 	  }
 
@@ -75,21 +75,23 @@ export class EverythingParser implements ITypeParser {
 
 export class CourseParser implements ITypeParser {
   async parse(html: HTMLElement) {
-    const rows = html.querySelectorAll('.course-mainbar > .row');
+	const rows = html.querySelectorAll('.course-mainbar > .row');
 
-    const parsedRows: ParsedItem[] = [];
+	const parsedRows: ParsedItem[] = [];
 
-    rows.forEach(row => {
-      const titleElement = row.querySelector('.section-title').textContent.trimLeft();
+	rows.forEach(row => {
+	  const titleElement = row.querySelector('.section-title').textContent.trimLeft();
 
-      // spaces used in html aren't actual spaces but some other character
-      const title = /^([\w\s]+) \(/g.exec(titleElement)[1].replace(' ', ' ');
+	  // spaces used in html aren't actual spaces but some other character
+	  const title = /^([\w\s]+) \(/g.exec(titleElement)[1].replace(' ', ' ');
 
-      const lectures = row.querySelectorAll('.section-list > li > a').map(x => x.getAttribute('href'));
+	  const lectures = row.querySelectorAll('.section-list > li > a').map(x => x.getAttribute('href'));
 
-      const parsedUrls = lectures.map(x => ({nextUrl: x, nextType: 'video'} as ParsedItem));
+	  const parsedUrls = lectures.map(x => (
+		{nextUrl: x, nextType: 'video'} as ParsedItem
+	  ));
 
-      parsedRows.push(...parsedUrls);
+	  parsedRows.push(...parsedUrls);
 	});
 
 	return parsedRows;
@@ -98,6 +100,24 @@ export class CourseParser implements ITypeParser {
 
 export class VideoParser implements ITypeParser {
   async parse(html: HTMLElement) {
-	return [] as ParsedItem[];
+	const lectureId = html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
+	const videoTitle = html.querySelector('#lecture_heading').textContent.trim().replace(/(\d+)(-)(.+)/gmi, '$1 $2$3');
+	const courseSections = html.querySelectorAll('.course-section');
+
+	const courseSection = courseSections.find(x => x.querySelector(`#sidebar_link_${lectureId}`) !== undefined);
+	const initialCourseSectionHeading = courseSection.querySelector('.section-title').textContent.trim();
+	const courseSectionHeading = /(.+)\s\(\d+m\)/gmi.exec(initialCourseSectionHeading)[1];
+
+	const wistiaId = html.querySelector('.attachment-wistia-player').getAttribute('data-wistia-id');
+
+	return [
+	  {
+	    nextUrl: `https://fast.wistia.com/embed/medias/${wistiaId}.json`,
+		extraData: {
+		  courseSectionHeading: courseSectionHeading,
+		  videoTitle
+		}
+	  }
+	] as ParsedItem[];
   }
 }

@@ -1,13 +1,12 @@
 import {dialog} from 'electron';
-import fetch, {Response} from 'node-fetch';
+import fetch, {RequestInit, Response} from 'node-fetch';
 
 export const options = {
   method: 'GET',
   headers: {
 	Cookie: '',
 	'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0',
-	Host: 'codewithmosh.com',
-	Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+	Accept: 'text/html,application/xhtml+xml,application/json,application/xml;q=0.9,image/webp,*/*;q=0.8',
 	'Accept-Encoding': 'gzip, deflate, br',
 	'Accept-Language': 'en-GB,en;q=0.5',
 	'Cache-Control': 'no-cache',
@@ -17,11 +16,11 @@ export const options = {
   }
 };
 
-export async function get(url: string): Promise<string | null> {
+export async function get(url: string, optionsOverride?: Partial<RequestInit>): Promise<string | null> {
   let response: Response;
 
   try {
-    response = await fetch(url, options);
+    response = await fetch(url, optionsOverride ?? options);
   } catch (e) {
     console.log(e);
     return null;

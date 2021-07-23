@@ -1,16 +1,24 @@
-import {DownloadQueueItem, DownloadQueueItemType} from 'Types/types';
+import {DownloadQueueItemType} from 'Types/types';
 import {get} from 'Main/client';
 import {HTMLElement} from 'node-html-parser';
 import {ITypeParser, ParsedItem} from 'MainTypes/types';
 
-export async function parsePageFromUrl(downloadItem: DownloadQueueItem) {
-  const response = await get(downloadItem.url);
+export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
+  if (!type) {
+    return null;
+  }
+
+  if (url.indexOf('http://') === -1 || url.indexOf('https://') === -1) {
+    url = new URL(url, 'https://codewithmosh.com').href;
+  }
+
+  const response = await get(url);
 
   if (!response) {
 	return null;
   }
 
-  const parser = getParser(downloadItem.type);
+  const parser = getParser(type);
 
   if (!parser) {
 	return null;
@@ -49,9 +57,14 @@ export class EverythingParser implements ITypeParser {
 		html = nextPage.toHtml();
 	  }
 
-	  const courseUrls = html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]').map(x => (
-		{nextUrl: x.getAttribute('href')} as ParsedItem
+	  let courseUrls = html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]').map(x => (
+		{nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
 	  ));
+
+	  if (i === 0) {
+	    // skip first course which is the all access one
+		courseUrls = courseUrls.slice(1);
+	  }
 
 	  courses.push(...courseUrls);
 	}
@@ -62,26 +75,29 @@ export class EverythingParser implements ITypeParser {
 
 export class CourseParser implements ITypeParser {
   async parse(html: HTMLElement) {
-	return [
-	  {
-		nextUrl: '',
-		extraData: {
-		  '': ''
-		}
-	  }
-	];
+    const rows = html.querySelectorAll('.course-mainbar > .row');
+
+    const parsedRows: ParsedItem[] = [];
+
+    rows.forEach(row => {
+      const titleElement = row.querySelector('.section-title').textContent.trimLeft();
+
+      // spaces used in html aren't actual spaces but some other character
+      const title = /^([\w\s]+) \(/g.exec(titleElement)[1].replace(' ', ' ');
+
+      const lectures = row.querySelectorAll('.section-list > li > a').map(x => x.getAttribute('href'));
+
+      const parsedUrls = lectures.map(x => ({nextUrl: x, nextType: 'video'} as ParsedItem));
+
+      parsedRows.push(...parsedUrls);
+	});
+
+	return parsedRows;
   }
 }
 
 export class VideoParser implements ITypeParser {
   async parse(html: HTMLElement) {
-	return [
-	  {
-		nextUrl: '',
-		extraData: {
-		  '': ''
-		}
-	  }
-	];
+	return [] as ParsedItem[];
   }
 }

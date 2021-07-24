@@ -64,11 +64,11 @@ jobs:
         with:
           fallback: 1.0.0
       - uses: actions/download-artifact@v2
-        if: ${{ steps.previoustag.outputs.tag }} != ${{ env.PACKAGE_VERSION }}
+        if: ${{ steps.previoustag.outputs.tag }} != "v${{ env.PACKAGE_VERSION }}"
         with:
           name: artifacts_linux
       - uses: "marvinpinto/action-automatic-releases@latest"
-        if: ${{ steps.previoustag.outputs.tag }} != ${{ env.PACKAGE_VERSION }}
+        if: ${{ steps.previoustag.outputs.tag }} != "v${{ env.PACKAGE_VERSION }}"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "v${{ env.PACKAGE_VERSION }}"

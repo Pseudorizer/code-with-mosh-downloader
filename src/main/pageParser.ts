@@ -1,5 +1,5 @@
 import {DownloadQueueItemType} from 'Types/types';
-import {get} from 'Main/client';
+import {getString} from 'Main/client';
 import {HTMLElement} from 'node-html-parser';
 import {ITypeParser, ParsedItem} from 'MainTypes/types';
 
@@ -12,7 +12,7 @@ export async function parsePageFromUrl(url: string, type: DownloadQueueItemType)
 	url = new URL(url, 'https://codewithmosh.com').href;
   }
 
-  const response = await get(url);
+  const response = await getString(url);
 
   if (!response) {
 	return null;
@@ -48,7 +48,7 @@ export class EverythingParser implements ITypeParser {
 
 	for (let i = 0; i < numberOfPages; i++) {
 	  if (i > 0) {
-		const nextPage = await get(`https://codewithmosh.com/courses?page=${i + 1}`);
+		const nextPage = await getString(`https://codewithmosh.com/courses?page=${i + 1}`);
 
 		if (!nextPage) {
 		  continue;
@@ -105,11 +105,14 @@ export class VideoParser implements ITypeParser {
 
 	const wistiaId = html.querySelector('.attachment-wistia-player').getAttribute('data-wistia-id');
 
+	const courseTitle = html.querySelector('.course-sidebar-head > h2').textContent;
+
 	return [
 	  {
-	    nextUrl: `https://fast.wistia.com/embed/medias/${wistiaId}.json`,
+		nextUrl: `https://fast.wistia.com/embed/medias/${wistiaId}.json`,
 		extraData: {
-		  courseSectionHeading: courseSectionHeading,
+		  courseTitle,
+		  courseSectionHeading,
 		  videoTitle
 		}
 	  }

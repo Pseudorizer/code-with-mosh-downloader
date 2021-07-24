@@ -6,7 +6,6 @@ export const options = {
   headers: {
 	Cookie: '',
 	'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0',
-	Accept: 'text/html,application/xhtml+xml,application/json,application/xml;q=0.9,image/webp,*/*;q=0.8',
 	'Accept-Encoding': 'gzip, deflate, br',
 	'Accept-Language': 'en-GB,en;q=0.5',
 	'Cache-Control': 'no-cache',
@@ -16,22 +15,28 @@ export const options = {
   }
 };
 
-export async function get(url: string, optionsOverride?: Partial<RequestInit>): Promise<string | null> {
+export async function get(url: string, optionsOverride?: Partial<RequestInit>) {
   let response: Response;
 
   try {
-    response = await fetch(url, optionsOverride ?? options);
+	response = await fetch(url, optionsOverride ?? options);
   } catch (e) {
-    console.log(e);
-    return null;
+	console.log(e);
+	return null;
   }
 
   if (!response.ok) {
-    console.log(response.statusText);
-    return null;
+	console.log(response.statusText);
+	return null;
   }
 
-  return await response.text();
+  return response;
+}
+
+export async function getString(url: string, optionsOverride?: Partial<RequestInit>): Promise<string | null> {
+  const response = await get(url, optionsOverride);
+
+  return response ? await response.text() : null;
 }
 
 export function setSessionCookie(session: string) {
@@ -44,7 +49,7 @@ export function setSessionCookie(session: string) {
 }
 
 export async function validateSession() {
-  const response = await get('https://codewithmosh.com/');
+  const response = await getString('https://codewithmosh.com/');
 
   if (!response) {
     return false;

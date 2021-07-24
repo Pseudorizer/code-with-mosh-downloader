@@ -5,6 +5,7 @@ import {parsePageFromUrl} from 'Main/pageParser';
 import {ParsedItem} from 'MainTypes/types';
 import {getClosestQuality, getMediaOptionsForVideo} from 'Main/utilityFunctions';
 import {settings} from 'Main/loadSettings';
+import {get} from 'Main/client';
 
 let downloadActive = false;
 const lock = new AsyncLock();
@@ -48,8 +49,16 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 	}
 
 	for (const video of videoUrls) {
-	  const f = await getMediaOptionsForVideo(video.nextUrl);
+	  const p = await parsePageFromUrl(video.nextUrl, video.nextType);
+	  const f = await getMediaOptionsForVideo(p);
 	  const k = getClosestQuality(f, settings.resolution);
+	  const g = await get(k.url);
+
+	  if (!g) {
+	    continue;
+	  }
+
+	  const y = await g.arrayBuffer();
 	}
   }
 

@@ -1,14 +1,11 @@
-import {parsePageFromUrl} from 'Main/pageParser';
-import {get} from 'Main/client';
-import {WistiaAsset, WistiaMedia} from 'MainTypes/types';
+import {getString} from 'Main/client';
+import {ParsedItem, WistiaAsset, WistiaMedia} from 'MainTypes/types';
 import {Resolution} from 'Types/types';
 
 // TODO think of a better name for this file
 
-export async function getMediaOptionsForVideo(url: string) {
-  const videoParsed = await parsePageFromUrl(url, 'video');
-
-  const mediaJson = await get(videoParsed[0].nextUrl);
+export async function getMediaOptionsForVideo(videoParsed: ParsedItem[]) {
+  const mediaJson = await getString(videoParsed[0].nextUrl);
 
   const wistiaMedia = JSON.parse(mediaJson) as WistiaMedia;
 
@@ -25,7 +22,7 @@ export function getClosestQuality(assets: WistiaAsset[], resolution: Resolution)
   const referenceAsset = {
     width: resolution.width,
     height: resolution.height,
-    bitrate: 0,
+    bitrate: assets.reduce((a, b) => a + b.bitrate, 0) / assets.length,
     ext: '',
     display_name: '',
     type: '',
@@ -38,7 +35,7 @@ export function getClosestQuality(assets: WistiaAsset[], resolution: Resolution)
   assets.push(referenceAsset);
 
   assets = assets.sort((a, b) => {
-    return (a.height * a.width) - (b.height * b.width);
+    return (a.height * a.width + a.bitrate) - (b.height * b.width + b.bitrate);
   });
 
   const insertedPosition = assets.indexOf(referenceAsset);

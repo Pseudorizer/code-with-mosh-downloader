@@ -5,6 +5,11 @@ export interface ITypeParser {
   parse(html: HTMLElement): Promise<ParsedItem[]>
 }
 
+export type ParsedAttachment = {
+  type: 'text' | 'download',
+  data: unknown
+}
+
 export type ParsedItem = {
   nextUrl: string,
   nextType?: DownloadQueueItemType,

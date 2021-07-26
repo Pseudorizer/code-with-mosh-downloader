@@ -1,7 +1,7 @@
 import {DownloadQueueItemType} from 'Types/types';
 import {getString} from 'Main/client';
 import {HTMLElement} from 'node-html-parser';
-import {ITypeParser, ParsedItem} from 'MainTypes/types';
+import {ITypeParser, ParsedAttachment, ParsedItem} from 'MainTypes/types';
 
 export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
   if (!type) {
@@ -94,6 +94,38 @@ export class CourseParser implements ITypeParser {
 }
 
 export class VideoParser implements ITypeParser {
+  private static getVideo(html: HTMLElement) {
+	const wistiaIdElement = html.querySelector('.attachment-wistia-player');
+
+	return wistiaIdElement ? wistiaIdElement.getAttribute('data-wistia-id') : null;
+  }
+
+  private static getAttachments(html: HTMLElement) {
+    const attachmentElements = html.querySelectorAll('.lecture-attachment:not(.lecture-attachment-type-video)');
+
+    const attachments: ParsedAttachment[] = [];
+
+    attachmentElements.forEach(x => {
+      if (x.hasAttribute('lecture-attachment-type-text')) {
+        const textContainer = x.querySelector('.lecture-text-container');
+
+        attachments.push({
+		  type: 'text',
+		  data: textContainer.innerHTML
+		});
+	  } else if (x.hasAttribute('.lecture-attachment-type-file')) {
+        const downloadLink = x.querySelector('a');
+
+        attachments.push({
+		  type: 'download',
+		  data: downloadLink.getAttribute('href')
+		});
+	  }
+	});
+
+    return attachments;
+  }
+
   async parse(html: HTMLElement) {
 	const lectureId = html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
 	const videoTitle = html.querySelector('#lecture_heading').textContent.trim().replace(/(\d+)(-)(.+)/gmi, '$1 $2$3');
@@ -103,7 +135,8 @@ export class VideoParser implements ITypeParser {
 	const initialCourseSectionHeading = courseSection.querySelector('.section-title').textContent.trim();
 	const courseSectionHeading = /(.+)\s\(\d+m\)/gmi.exec(initialCourseSectionHeading)[1];
 
-	const wistiaId = html.querySelector('.attachment-wistia-player').getAttribute('data-wistia-id');
+	const wistiaId = VideoParser.getVideo(html);
+	const attachments = VideoParser.getAttachments(html);
 
 	const courseTitle = html.querySelector('.course-sidebar-head > h2').textContent;
 
@@ -113,7 +146,8 @@ export class VideoParser implements ITypeParser {
 		extraData: {
 		  courseTitle,
 		  courseSectionHeading,
-		  videoTitle
+		  videoTitle,
+		  attachments
 		}
 	  }
 	] as ParsedItem[];

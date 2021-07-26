@@ -1,6 +1,7 @@
 export type Settings = {
   sessionCookie: string,
-  resolution: Resolution
+  resolution: Resolution,
+  downloadDir: string
 }
 
 export type Resolution = {

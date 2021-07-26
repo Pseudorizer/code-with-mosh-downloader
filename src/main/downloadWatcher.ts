@@ -6,6 +6,10 @@ import {ParsedItem} from 'MainTypes/types';
 import {getClosestQuality, getMediaOptionsForVideo} from 'Main/utilityFunctions';
 import {settings} from 'Main/loadSettings';
 import {get} from 'Main/client';
+import * as os from 'os';
+import path from 'path';
+import sanitize from 'sanitize-filename';
+import * as fs from 'fs/promises';
 
 let downloadActive = false;
 const lock = new AsyncLock();
@@ -55,10 +59,38 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 	  const g = await get(k.url);
 
 	  if (!g) {
+		continue;
+	  }
+
+	  const y = await g.buffer();
+
+	  const downloadDirectory = settings.downloadDir || path.join(os.homedir(), 'codewithmosh-downloads');
+
+	  const downloadSaveDirectory = path.join(
+		downloadDirectory,
+		sanitize(p[0].extraData.courseTitle as string, {replacement: '_'}),
+		sanitize(p[0].extraData.courseSectionHeading as string, {replacement: '_'})
+	  );
+
+	  const downloadSavePath = path.join(
+	    downloadSaveDirectory,
+		sanitize(p[0].extraData.videoTitle as string + '.mp4', {replacement: '_'})
+	  );
+
+	  try {
+	    await fs.mkdir(downloadSaveDirectory, {recursive: true});
+	  } catch (e) {
+	    console.log(e);
 	    continue;
 	  }
 
-	  const y = await g.arrayBuffer();
+	  try {
+	    await fs.writeFile(downloadSavePath, y);
+	  } catch (e) {
+	    console.log(e);
+	  }
+
+	  const x = 1;
 	}
   }
 

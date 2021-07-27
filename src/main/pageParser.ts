@@ -101,34 +101,48 @@ export class VideoParser implements ITypeParser {
   }
 
   private static getAttachments(html: HTMLElement) {
-    const attachmentElements = html.querySelectorAll('.lecture-attachment:not(.lecture-attachment-type-video)');
+	const attachmentElements = html.querySelectorAll('.lecture-attachment:not(.lecture-attachment-type-video)');
 
-    const attachments: ParsedAttachment[] = [];
+	const attachments: ParsedAttachment[] = [];
 
-    attachmentElements.forEach(x => {
-      if (x.hasAttribute('lecture-attachment-type-text')) {
-        const textContainer = x.querySelector('.lecture-text-container');
+	attachmentElements.forEach(x => {
+	  if (x.classList.contains((
+		'lecture-attachment-type-text'
+	  ))) {
+		const textContainer = x.querySelector('.lecture-text-container');
 
-        attachments.push({
+		attachments.push({
 		  type: 'text',
 		  data: textContainer.innerHTML
 		});
-	  } else if (x.hasAttribute('.lecture-attachment-type-file')) {
-        const downloadLink = x.querySelector('a');
+	  } else if (x.classList.contains('lecture-attachment-type-file')) {
+		const downloadLink = x.querySelector('a');
+		const filename = downloadLink.textContent.trim();
+
+		attachments.push({
+		  type: 'download',
+		  data: downloadLink.getAttribute('href'),
+		  name: filename.fixTitleHyphen()
+		});
+	  } else if (x.classList.contains('lecture-attachment-type-pdf_embed')) {
+		const firstId = html.querySelector('#fedora-keys').getAttribute('data-filepicker');
+		const secondId = x.querySelector('.wrapper > div').getAttribute('data-pdfviewer-id');
+        const filename = x.querySelector('.label').textContent.trim();
 
         attachments.push({
-		  type: 'download',
-		  data: downloadLink.getAttribute('href')
+		  type: 'pdf',
+		  data: `https://cdn.filestackcontent.com/${firstId}/${secondId}`,
+		  name: filename
 		});
 	  }
 	});
 
-    return attachments;
+	return attachments;
   }
 
   async parse(html: HTMLElement) {
 	const lectureId = html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
-	const videoTitle = html.querySelector('#lecture_heading').textContent.trim().replace(/(\d+)(-)(.+)/gmi, '$1 $2$3');
+	const videoTitle = html.querySelector('#lecture_heading').textContent.trim().fixTitleHyphen();
 	const courseSections = html.querySelectorAll('.course-section');
 
 	const courseSection = courseSections.find(x => x.querySelector(`#sidebar_link_${lectureId}`) !== undefined);
@@ -142,7 +156,8 @@ export class VideoParser implements ITypeParser {
 
 	return [
 	  {
-		nextUrl: `https://fast.wistia.com/embed/medias/${wistiaId}.json`,
+		nextUrl: wistiaId ? `https://fast.wistia.com/embed/medias/${wistiaId}.json` : null,
+		nextType: 'end',
 		extraData: {
 		  courseTitle,
 		  courseSectionHeading,

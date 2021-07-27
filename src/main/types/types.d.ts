@@ -6,8 +6,9 @@ export interface ITypeParser {
 }
 
 export type ParsedAttachment = {
-  type: 'text' | 'download',
-  data: unknown
+  type: 'text' | 'download' | 'pdf',
+  data: unknown,
+  name?: string
 }
 
 export type ParsedItem = {

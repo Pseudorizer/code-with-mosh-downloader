@@ -4,6 +4,9 @@ export default function defineExtensions() {
   Object.assign(String.prototype, {
 	toHtml() {
 	  return parse(this);
+	},
+	fixTitleHyphen() {
+	  return this.replace(/(.+)(-)(.+)/gmi, '$1 $2$3');
 	}
   });
 }

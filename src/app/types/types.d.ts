@@ -14,4 +14,4 @@ export type DownloadQueueItem = {
   type: DownloadQueueItemType
 }
 
-export type DownloadQueueItemType = 'everything' | 'course' | 'video';
+export type DownloadQueueItemType = 'everything' | 'course' | 'video' | 'end';

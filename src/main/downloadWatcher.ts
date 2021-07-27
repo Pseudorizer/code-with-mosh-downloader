@@ -2,8 +2,8 @@ import {downloadEvent, getNextDownloadItem} from 'Main/downloadQueue';
 import AsyncLock from 'async-lock';
 import {DownloadQueueItem} from 'Types/types';
 import {parsePageFromUrl} from 'Main/pageParser';
-import {ParsedItem} from 'MainTypes/types';
-import {getClosestQuality, getMediaOptionsForVideo} from 'Main/utilityFunctions';
+import {ParsedAttachment, ParsedItem} from 'MainTypes/types';
+import {getVideoIfAvailable} from 'Main/utilityFunctions';
 import {settings} from 'Main/loadSettings';
 import {get} from 'Main/client';
 import * as os from 'os';
@@ -48,46 +48,101 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
   for (const item of initialParse) {
 	let videoUrls: ParsedItem[] = [item];
 
-	while (!videoUrls.every(x => x.nextType === 'video')) {
+	while (videoUrls && !videoUrls.every(x => ['end', 'video'].includes(x.nextType))) {
 	  videoUrls = await parsePageFromUrl(videoUrls[0].nextUrl, videoUrls[0].nextType);
 	}
 
 	for (const video of videoUrls) {
-	  const p = await parsePageFromUrl(video.nextUrl, video.nextType);
-	  const f = await getMediaOptionsForVideo(p);
-	  const k = getClosestQuality(f, settings.resolution);
-	  const g = await get(k.url);
+	  const p = video.nextType === 'end' ? video : (
+		await parsePageFromUrl(video.nextUrl, video.nextType)
+	  )[0];
 
-	  if (!g) {
-		continue;
-	  }
-
-	  const y = await g.buffer();
+	  const y = await getVideoIfAvailable(p);
 
 	  const downloadDirectory = settings.downloadDir || path.join(os.homedir(), 'codewithmosh-downloads');
 
 	  const downloadSaveDirectory = path.join(
 		downloadDirectory,
-		sanitize(p[0].extraData.courseTitle as string, {replacement: '_'}),
-		sanitize(p[0].extraData.courseSectionHeading as string, {replacement: '_'})
+		sanitize(p.extraData.courseTitle as string, {replacement: '_'}),
+		sanitize(p.extraData.courseSectionHeading as string, {replacement: '_'}),
+		sanitize(p.extraData.videoTitle as string, {replacement: '_'})
 	  );
 
 	  const downloadSavePath = path.join(
-	    downloadSaveDirectory,
-		sanitize(p[0].extraData.videoTitle as string + '.mp4', {replacement: '_'})
+		downloadSaveDirectory,
+		sanitize(p.extraData.videoTitle as string + '.mp4', {replacement: '_'})
 	  );
 
 	  try {
-	    await fs.mkdir(downloadSaveDirectory, {recursive: true});
+		await fs.mkdir(downloadSaveDirectory, {recursive: true});
 	  } catch (e) {
-	    console.log(e);
-	    continue;
+		console.log(e);
+		continue;
 	  }
 
-	  try {
-	    await fs.writeFile(downloadSavePath, y);
-	  } catch (e) {
-	    console.log(e);
+	  if (y) {
+		try {
+		  await fs.writeFile(downloadSavePath, y);
+		} catch (e) {
+		  console.log(e);
+		}
+	  }
+
+	  if (p.extraData.attachments) {
+		for (const x of (
+		  p.extraData.attachments as ParsedAttachment[]
+		)) {
+		  switch (x.type) {
+			case 'text': {
+			  const savePath = path.join(
+				downloadSaveDirectory,
+				sanitize(`${p.extraData.videoTitle}.html`)
+			  );
+
+			  try {
+				await fs.writeFile(savePath, x.data as string);
+			  } catch (e) {
+				console.log(e);
+			  }
+			  break;
+			}
+			case 'download': {
+			  const fileData = await get(x.data as string);
+
+			  const i = await fileData.buffer();
+
+			  const savePath = path.join(
+				downloadSaveDirectory,
+				sanitize(x.name)
+			  );
+
+			  try {
+				await fs.writeFile(savePath, i);
+			  } catch (e) {
+				console.log(e);
+			  }
+
+			  break;
+			}
+			case 'pdf': {
+			  const k = await get(x.data as string);
+
+			  const y = await k.buffer();
+
+			  const savePath = path.join(
+				downloadSaveDirectory,
+				sanitize(x.name)
+			  );
+
+			  try {
+				await fs.writeFile(savePath, y);
+			  } catch (e) {
+				console.log(e);
+			  }
+			  break;
+			}
+		  }
+		}
 	  }
 
 	  const x = 1;

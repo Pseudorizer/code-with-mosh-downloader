@@ -1,11 +1,28 @@
-import {getString} from 'Main/client';
+import {get, getString} from 'Main/client';
 import {ParsedItem, WistiaAsset, WistiaMedia} from 'MainTypes/types';
 import {Resolution} from 'Types/types';
+import {settings} from 'Main/loadSettings';
 
 // TODO think of a better name for this file
 
-export async function getMediaOptionsForVideo(videoParsed: ParsedItem[]) {
-  const mediaJson = await getString(videoParsed[0].nextUrl);
+export async function getVideoIfAvailable(parsedItem: ParsedItem) {
+  if (!parsedItem.nextUrl) {
+    return null;
+  }
+
+  const f = await getMediaOptionsForVideo(parsedItem);
+  const k = getClosestQuality(f, settings.resolution);
+  const g = await get(k.url);
+
+  if (!g) {
+    return null;
+  }
+
+  return await g.buffer();
+}
+
+export async function getMediaOptionsForVideo(videoParsed: ParsedItem) {
+  const mediaJson = await getString(videoParsed.nextUrl);
 
   const wistiaMedia = JSON.parse(mediaJson) as WistiaMedia;
 

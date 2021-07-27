@@ -1,7 +1,7 @@
 import {DownloadQueueItemType} from 'Types/types';
 import {getString} from 'Main/client';
 import {HTMLElement} from 'node-html-parser';
-import {ParsedAttachment, ParsedItem} from 'MainTypes/types';
+import {Course, ParsedAttachment, ParsedItem} from 'MainTypes/types';
 import {TypeParser} from 'Main/typeParser';
 
 export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
@@ -75,40 +75,21 @@ export class EverythingParser extends TypeParser {
 }
 
 export class CourseParser extends TypeParser {
-  private async parseNextJs() {
-    const courseId = /\/(\d+)$/gmi.exec(this._url);
-
-    return [
-	  {
-	    nextUrl: '',
-		nextType: 'video'
-	  } as ParsedItem
-	];
-  }
-
-  private parseNormal() {
-	const rows = this._html.querySelectorAll(this._html.querySelector('#__next') ? '.lectures > .bar' : '.section-item');
-
-	const parsedRows: ParsedItem[] = [];
-
-	rows.forEach(row => {
-	  const lectures = row.querySelector('a').getAttribute('href');
-
-	  parsedRows.push({
-		nextUrl: lectures,
-		nextType: 'video'
-	  });
-	});
-
-	return parsedRows;
-  }
-
   override async parse() {
-    if (this._html.querySelector('#__next')) {
-      return await this.parseNextJs();
-	} else {
-      return this.parseNormal();
+	const courseId = /\/(\d+)$/gmi.exec(this._url)[1];
+
+	const jsonData = await getString(`https://codewithmosh.com/layabout/current_user?course_id=${courseId}`);
+
+	const courseData = JSON.parse(jsonData) as Course;
+
+	if (courseData.error) {
+	  return null;
 	}
+
+	return courseData.lectures.map(x => ({
+	  nextUrl: x.url,
+	  nextType: 'video'
+	} as ParsedItem));
   }
 }
 

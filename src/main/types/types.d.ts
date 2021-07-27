@@ -32,3 +32,18 @@ export type WistiaAsset = {
   height: number,
   type: string
 }
+
+export type Course = {
+  lectures: Lecture[],
+  error?: string
+}
+
+export type Lecture = {
+  id:             number,
+  name:           string,
+  position:       number,
+  section_name:   SectionName,
+  section_length: number,
+  url:            string,
+  is_completed:   boolean
+}

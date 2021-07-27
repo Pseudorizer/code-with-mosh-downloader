@@ -17,9 +17,9 @@ const lock = new AsyncLock();
 const WATCHER_KEY = 'WATCHER_KEY';
 
 export function loadDownloadWatcherHandlers() {
-  downloadEvent.on('itemEnqueued', async () => {
-	let downloadItem: DownloadQueueItem;
+  let downloadItem: DownloadQueueItem;
 
+  downloadEvent.on('itemEnqueued', async () => {
 	await lock.acquire(WATCHER_KEY, async () => {
 	  if (downloadActive) {
 		return;
@@ -89,9 +89,7 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 	  }
 
 	  if (p.extraData.attachments) {
-		for (const x of (
-		  p.extraData.attachments as ParsedAttachment[]
-		)) {
+		for (const x of (p.extraData.attachments as ParsedAttachment[])) {
 		  switch (x.type) {
 			case 'text': {
 			  const savePath = path.join(

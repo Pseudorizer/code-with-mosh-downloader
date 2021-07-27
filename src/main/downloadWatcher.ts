@@ -30,9 +30,7 @@ export function loadDownloadWatcherHandlers() {
 
 	await startNewDownload(downloadItem);
 
-	while ((
-	  downloadItem = await getNextDownloadItem()
-	) !== undefined) {
+	while ((downloadItem = await getNextDownloadItem()) !== undefined) {
 	  await startNewDownload(downloadItem);
 	}
   });
@@ -53,24 +51,19 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 	}
 
 	for (const video of videoUrls) {
-	  const p = video.nextType === 'end' ? video : (
+	  const pageParsed = video.nextType === 'end' ? video : (
 		await parsePageFromUrl(video.nextUrl, video.nextType)
 	  )[0];
 
-	  const y = await getVideoIfAvailable(p);
+	  const videoBuffer = await getVideoIfAvailable(pageParsed);
 
 	  const downloadDirectory = settings.downloadDir || path.join(os.homedir(), 'codewithmosh-downloads');
 
 	  const downloadSaveDirectory = path.join(
 		downloadDirectory,
-		sanitize(p.extraData.courseTitle as string, {replacement: '_'}),
-		sanitize(p.extraData.courseSectionHeading as string, {replacement: '_'}),
-		sanitize(p.extraData.videoTitle as string, {replacement: '_'})
-	  );
-
-	  const downloadSavePath = path.join(
-		downloadSaveDirectory,
-		sanitize(p.extraData.videoTitle as string + '.mp4', {replacement: '_'})
+		sanitize(pageParsed.extraData.courseTitle as string, {replacement: '_'}),
+		sanitize(pageParsed.extraData.courseSectionHeading as string, {replacement: '_'}),
+		sanitize(pageParsed.extraData.videoTitle as string, {replacement: '_'})
 	  );
 
 	  try {
@@ -80,42 +73,47 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 		continue;
 	  }
 
-	  if (y) {
+	  if (videoBuffer) {
+		const videoSavePath = path.join(
+		  downloadSaveDirectory,
+		  sanitize(pageParsed.extraData.videoTitle as string + '.mp4', {replacement: '_'})
+		);
+
 		try {
-		  await fs.writeFile(downloadSavePath, y);
+		  await fs.writeFile(videoSavePath, videoBuffer);
 		} catch (e) {
 		  console.log(e);
 		}
 	  }
 
-	  if (p.extraData.attachments) {
-		for (const x of (p.extraData.attachments as ParsedAttachment[])) {
-		  switch (x.type) {
+	  if (pageParsed.extraData.attachments) {
+		for (const attachment of (pageParsed.extraData.attachments as ParsedAttachment[])) {
+		  switch (attachment.type) {
 			case 'text': {
 			  const savePath = path.join(
 				downloadSaveDirectory,
-				sanitize(`${p.extraData.videoTitle}.html`)
+				sanitize(`${pageParsed.extraData.videoTitle}.html`)
 			  );
 
 			  try {
-				await fs.writeFile(savePath, x.data as string);
+				await fs.writeFile(savePath, attachment.data as string);
 			  } catch (e) {
 				console.log(e);
 			  }
 			  break;
 			}
 			case 'download': {
-			  const fileData = await get(x.data as string);
+			  const fileResponse = await get(attachment.data as string);
 
-			  const i = await fileData.buffer();
+			  const buffer = await fileResponse.buffer();
 
 			  const savePath = path.join(
 				downloadSaveDirectory,
-				sanitize(x.name)
+				sanitize(attachment.name)
 			  );
 
 			  try {
-				await fs.writeFile(savePath, i);
+				await fs.writeFile(savePath, buffer);
 			  } catch (e) {
 				console.log(e);
 			  }
@@ -123,17 +121,17 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 			  break;
 			}
 			case 'pdf': {
-			  const k = await get(x.data as string);
+			  const pdfResponse = await get(attachment.data as string);
 
-			  const y = await k.buffer();
+			  const buffer = await pdfResponse.buffer();
 
 			  const savePath = path.join(
 				downloadSaveDirectory,
-				sanitize(x.name)
+				sanitize(attachment.name)
 			  );
 
 			  try {
-				await fs.writeFile(savePath, y);
+				await fs.writeFile(savePath, buffer);
 			  } catch (e) {
 				console.log(e);
 			  }

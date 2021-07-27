@@ -22,7 +22,7 @@ export async function parsePageFromUrl(url: string, type: DownloadQueueItemType)
   const parser = getParser(type, response.toHtml(), url);
 
   if (!parser) {
-    return null;
+	return null;
   }
 
   return parser.parse();
@@ -58,9 +58,10 @@ export class EverythingParser extends TypeParser {
 		this._html = nextPage.toHtml();
 	  }
 
-	  let courseUrls = this._html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]').map(x => (
-		{nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
-	  ));
+	  let courseUrls = this._html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]')
+		.map(x => (
+		  {nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
+		));
 
 	  if (i === 0) {
 		// skip first course which is the all access one
@@ -106,9 +107,7 @@ export class VideoParser extends TypeParser {
 	const attachments: ParsedAttachment[] = [];
 
 	attachmentElements.forEach(x => {
-	  if (x.classList.contains((
-		'lecture-attachment-type-text'
-	  ))) {
+	  if (x.classList.contains(('lecture-attachment-type-text'))) {
 		const textContainer = x.querySelector('.lecture-text-container');
 
 		attachments.push({

@@ -1,7 +1,8 @@
 import {DownloadQueueItemType} from 'Types/types';
 import {getString} from 'Main/client';
 import {HTMLElement} from 'node-html-parser';
-import {ITypeParser, ParsedAttachment, ParsedItem} from 'MainTypes/types';
+import {ParsedAttachment, ParsedItem} from 'MainTypes/types';
+import {TypeParser} from 'Main/typeParser';
 
 export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
   if (!type) {
@@ -18,31 +19,31 @@ export async function parsePageFromUrl(url: string, type: DownloadQueueItemType)
 	return null;
   }
 
-  const parser = getParser(type);
+  const parser = getParser(type, response.toHtml(), url);
 
   if (!parser) {
-	return null;
+    return null;
   }
 
-  return await parser.parse(response.toHtml());
+  return parser.parse();
 }
 
-function getParser(type: DownloadQueueItemType): ITypeParser | null {
+function getParser(type: DownloadQueueItemType, html: HTMLElement, url: string): TypeParser | null {
   switch (type) {
 	case 'course':
-	  return new CourseParser();
+	  return new CourseParser(html, url);
 	case 'everything':
-	  return new EverythingParser();
+	  return new EverythingParser(html, url);
 	case 'video':
-	  return new VideoParser();
+	  return new VideoParser(html, url);
 	default:
 	  return null;
   }
 }
 
-export class EverythingParser implements ITypeParser {
-  async parse(html: HTMLElement) {
-	const numberOfPages = html.querySelectorAll('nav > .page').length;
+export class EverythingParser extends TypeParser {
+  override async parse() {
+	const numberOfPages = this._html.querySelectorAll('nav > .page').length;
 
 	const courses: ParsedItem[] = [];
 
@@ -54,10 +55,10 @@ export class EverythingParser implements ITypeParser {
 		  continue;
 		}
 
-		html = nextPage.toHtml();
+		this._html = nextPage.toHtml();
 	  }
 
-	  let courseUrls = html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]').map(x => (
+	  let courseUrls = this._html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]').map(x => (
 		{nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
 	  ));
 
@@ -73,35 +74,53 @@ export class EverythingParser implements ITypeParser {
   }
 }
 
-export class CourseParser implements ITypeParser {
-  async parse(html: HTMLElement) {
-	const rows = html.querySelectorAll('.course-mainbar > .row');
+export class CourseParser extends TypeParser {
+  private async parseNextJs() {
+    const courseId = /\/(\d+)$/gmi.exec(this._url);
+
+    return [
+	  {
+	    nextUrl: '',
+		nextType: 'video'
+	  } as ParsedItem
+	];
+  }
+
+  private parseNormal() {
+	const rows = this._html.querySelectorAll(this._html.querySelector('#__next') ? '.lectures > .bar' : '.section-item');
 
 	const parsedRows: ParsedItem[] = [];
 
 	rows.forEach(row => {
-	  const lectures = row.querySelectorAll('.section-list > li > a').map(x => x.getAttribute('href'));
+	  const lectures = row.querySelector('a').getAttribute('href');
 
-	  const parsedUrls = lectures.map(x => (
-		{nextUrl: x, nextType: 'video'} as ParsedItem
-	  ));
-
-	  parsedRows.push(...parsedUrls);
+	  parsedRows.push({
+		nextUrl: lectures,
+		nextType: 'video'
+	  });
 	});
 
 	return parsedRows;
   }
+
+  override async parse() {
+    if (this._html.querySelector('#__next')) {
+      return await this.parseNextJs();
+	} else {
+      return this.parseNormal();
+	}
+  }
 }
 
-export class VideoParser implements ITypeParser {
-  private static getVideo(html: HTMLElement) {
-	const wistiaIdElement = html.querySelector('.attachment-wistia-player');
+export class VideoParser extends TypeParser {
+  private getVideo() {
+	const wistiaIdElement = this._html.querySelector('.attachment-wistia-player');
 
 	return wistiaIdElement ? wistiaIdElement.getAttribute('data-wistia-id') : null;
   }
 
-  private static getAttachments(html: HTMLElement) {
-	const attachmentElements = html.querySelectorAll('.lecture-attachment:not(.lecture-attachment-type-video)');
+  private getAttachments() {
+	const attachmentElements = this._html.querySelectorAll('.lecture-attachment:not(.lecture-attachment-type-video)');
 
 	const attachments: ParsedAttachment[] = [];
 
@@ -125,11 +144,11 @@ export class VideoParser implements ITypeParser {
 		  name: filename.fixTitleHyphen()
 		});
 	  } else if (x.classList.contains('lecture-attachment-type-pdf_embed')) {
-		const firstId = html.querySelector('#fedora-keys').getAttribute('data-filepicker');
+		const firstId = this._html.querySelector('#fedora-keys').getAttribute('data-filepicker');
 		const secondId = x.querySelector('.wrapper > div').getAttribute('data-pdfviewer-id');
-        const filename = x.querySelector('.label').textContent.trim();
+		const filename = x.querySelector('.label').textContent.trim();
 
-        attachments.push({
+		attachments.push({
 		  type: 'pdf',
 		  data: `https://cdn.filestackcontent.com/${firstId}/${secondId}`,
 		  name: filename
@@ -140,19 +159,19 @@ export class VideoParser implements ITypeParser {
 	return attachments;
   }
 
-  async parse(html: HTMLElement) {
-	const lectureId = html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
-	const videoTitle = html.querySelector('#lecture_heading').textContent.trim().fixTitleHyphen();
-	const courseSections = html.querySelectorAll('.course-section');
+  override async parse() {
+	const lectureId = this._html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
+	const videoTitle = this._html.querySelector('#lecture_heading').textContent.trim().fixTitleHyphen();
+	const courseSections = this._html.querySelectorAll('.course-section');
 
 	const courseSection = courseSections.find(x => x.querySelector(`#sidebar_link_${lectureId}`) !== undefined);
 	const initialCourseSectionHeading = courseSection.querySelector('.section-title').textContent.trim();
 	const courseSectionHeading = /(.+)\s\(\d+m\)/gmi.exec(initialCourseSectionHeading)[1];
 
-	const wistiaId = VideoParser.getVideo(html);
-	const attachments = VideoParser.getAttachments(html);
+	const wistiaId = this.getVideo();
+	const attachments = this.getAttachments();
 
-	const courseTitle = html.querySelector('.course-sidebar-head > h2').textContent;
+	const courseTitle = this._html.querySelector('.course-sidebar-head > h2').textContent;
 
 	return [
 	  {

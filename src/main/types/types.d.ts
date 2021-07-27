@@ -1,9 +1,4 @@
-import {HTMLElement} from 'node-html-parser';
 import {DownloadQueueItemType} from 'Types/types';
-
-export interface ITypeParser {
-  parse(html: HTMLElement): Promise<ParsedItem[]>
-}
 
 export type ParsedAttachment = {
   type: 'text' | 'download' | 'pdf',

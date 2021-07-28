@@ -43,6 +43,11 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 
   const initialParse = await parsePageFromUrl(downloadItem.url, downloadItem.type);
 
+  if (!initialParse) {
+	// ERROR
+    return;
+  }
+
   for (const item of initialParse) {
 	let videoUrls: ParsedItem[] = [item];
 
@@ -50,10 +55,24 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 	  videoUrls = await parsePageFromUrl(videoUrls[0].nextUrl, videoUrls[0].nextType);
 	}
 
+	if (!videoUrls) {
+	  // ERROR
+	  continue;
+	}
+
 	for (const video of videoUrls) {
-	  const pageParsed = video.nextType === 'end' ? video : (
+	  let pageParsed = video.nextType === 'end' ? video : (
 		await parsePageFromUrl(video.nextUrl, video.nextType)
-	  )[0];
+	  );
+
+	  if (!pageParsed || (Array.isArray(pageParsed) && pageParsed.length === 0)) {
+	    // ERROR
+	    continue;
+	  }
+
+	  if (Array.isArray(pageParsed)) {
+	    pageParsed = pageParsed[0];
+	  }
 
 	  const videoBuffer = await getVideoIfAvailable(pageParsed);
 
@@ -102,8 +121,14 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 			  }
 			  break;
 			}
+			case 'pdf':
 			case 'download': {
 			  const fileResponse = await get(attachment.data as string);
+
+			  if (!fileResponse) {
+			    // ERROR
+				continue;
+			  }
 
 			  const buffer = await fileResponse.buffer();
 
@@ -118,23 +143,6 @@ async function startNewDownload(downloadItem: DownloadQueueItem) {
 				console.log(e);
 			  }
 
-			  break;
-			}
-			case 'pdf': {
-			  const pdfResponse = await get(attachment.data as string);
-
-			  const buffer = await pdfResponse.buffer();
-
-			  const savePath = path.join(
-				downloadSaveDirectory,
-				sanitize(attachment.name)
-			  );
-
-			  try {
-				await fs.writeFile(savePath, buffer);
-			  } catch (e) {
-				console.log(e);
-			  }
 			  break;
 			}
 		  }

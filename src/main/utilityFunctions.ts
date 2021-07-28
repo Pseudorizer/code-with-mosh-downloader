@@ -11,7 +11,17 @@ export async function getVideoIfAvailable(parsedItem: ParsedItem) {
   }
 
   const mediaOptions = await getMediaOptionsForVideo(parsedItem);
+
+  if (!mediaOptions) {
+    return null;
+  }
+
   const bestQuality = getClosestQuality(mediaOptions, settings.resolution);
+
+  if (!bestQuality) {
+    return null;
+  }
+
   const downloadResponse = await get(bestQuality.url);
 
   return !downloadResponse ? null : await downloadResponse.buffer();
@@ -19,6 +29,10 @@ export async function getVideoIfAvailable(parsedItem: ParsedItem) {
 
 export async function getMediaOptionsForVideo(videoParsed: ParsedItem) {
   const mediaJson = await getString(videoParsed.nextUrl);
+
+  if (!mediaJson) {
+    return null;
+  }
 
   const wistiaMedia = JSON.parse(mediaJson) as WistiaMedia;
 

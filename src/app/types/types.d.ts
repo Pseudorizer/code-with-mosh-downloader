@@ -15,3 +15,10 @@ export type DownloadQueueItem = {
 }
 
 export type DownloadQueueItemType = 'everything' | 'course' | 'video' | 'end';
+
+export type AppNotification = {
+  type: AppNotificationType,
+  message: string
+}
+
+export type AppNotificationType = 'success' | 'error' | 'info';

@@ -57,5 +57,5 @@ export async function validateSession() {
 
   const html = response.toHtml();
 
-  return html.querySelector('#header-sign-up-btn') === null;
+  return !html.querySelector('#header-sign-up-btn');
 }

@@ -9,4 +9,22 @@ export default function defineExtensions() {
 	  return this.replace(/(.+)(-)(.+)/gmi, '$1 $2$3');
 	}
   });
+
+  Object.assign(HTMLElement.prototype, {
+	safeAccess<T>(func: (htmlElement: HTMLElement) => T) {
+	  return !this ? null : func(this);
+	}
+  });
+
+  Object.assign(Element.prototype, {
+	safeAccess<T>(func: (htmlElement: HTMLElement) => T) {
+	  return !this ? null : func(this);
+	}
+  });
+
+  Object.assign(Array.prototype, {
+	safeAccess<T>(func: (htmlElement: HTMLElement[]) => T) {
+	  return !this ? null : func(this);
+	}
+  });
 }

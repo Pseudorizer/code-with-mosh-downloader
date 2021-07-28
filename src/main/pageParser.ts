@@ -1,8 +1,8 @@
 import {DownloadQueueItemType} from 'Types/types';
 import {getString} from 'Main/client';
-import {HTMLElement} from 'node-html-parser';
 import {Course, ParsedAttachment, ParsedItem} from 'MainTypes/types';
 import {TypeParser} from 'Main/typeParser';
+import {HTMLElement} from 'node-html-parser';
 
 export async function parsePageFromUrl(url: string, type: DownloadQueueItemType) {
   if (!type) {
@@ -25,7 +25,7 @@ export async function parsePageFromUrl(url: string, type: DownloadQueueItemType)
 	return null;
   }
 
-  return parser.parse();
+  return await parser.parse();
 }
 
 function getParser(type: DownloadQueueItemType, html: HTMLElement, url: string): TypeParser | null {
@@ -43,7 +43,12 @@ function getParser(type: DownloadQueueItemType, html: HTMLElement, url: string):
 
 export class EverythingParser extends TypeParser {
   override async parse() {
-	const numberOfPages = this._html.querySelectorAll('nav > .page').length;
+	const numberOfPages = this._html.querySelectorAll('nav > .page').safeAccess((e) => e.length);
+
+	if (!numberOfPages) {
+	  // ERROR
+	  return null;
+	}
 
 	const courses: ParsedItem[] = [];
 
@@ -59,9 +64,14 @@ export class EverythingParser extends TypeParser {
 	  }
 
 	  let courseUrls = this._html.querySelectorAll('.row.course-list.list > div a[data-role="course-box-link"]')
-		.map(x => (
-		  {nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
-		));
+		.safeAccess((e) =>
+		  e.map(x => (
+			{nextUrl: x.getAttribute('href'), nextType: 'course'} as ParsedItem
+		  )));
+
+	  if (!courseUrls) {
+	    continue;
+	  }
 
 	  if (i === 0) {
 		// skip first course which is the all access one
@@ -81,6 +91,10 @@ export class CourseParser extends TypeParser {
 
 	const jsonData = await getString(`https://codewithmosh.com/layabout/current_user?course_id=${courseId}`);
 
+	if (!jsonData) {
+	  return null;
+	}
+
 	const courseData = JSON.parse(jsonData) as Course;
 
 	if (courseData.error) {
@@ -96,9 +110,7 @@ export class CourseParser extends TypeParser {
 
 export class VideoParser extends TypeParser {
   private getVideo() {
-	const wistiaIdElement = this._html.querySelector('.attachment-wistia-player');
-
-	return wistiaIdElement ? wistiaIdElement.getAttribute('data-wistia-id') : null;
+	return this._html.querySelector('.attachment-wistia-player').safeAccess(x => x.getAttribute('data-wistia-id'));
   }
 
   private getAttachments() {
@@ -108,30 +120,30 @@ export class VideoParser extends TypeParser {
 
 	attachmentElements.forEach(x => {
 	  if (x.classList.contains(('lecture-attachment-type-text'))) {
-		const textContainer = x.querySelector('.lecture-text-container');
+		const html = x.querySelector('.lecture-text-container').safeAccess(x => x.innerHTML);
 
 		attachments.push({
 		  type: 'text',
-		  data: textContainer.innerHTML
+		  data: html ?? ''
 		});
 	  } else if (x.classList.contains('lecture-attachment-type-file')) {
 		const downloadLink = x.querySelector('a');
-		const filename = downloadLink.textContent.trim();
+		const filename = downloadLink.safeAccess(x => x.textContent.trim());
 
 		attachments.push({
 		  type: 'download',
-		  data: downloadLink.getAttribute('href'),
-		  name: filename.fixTitleHyphen()
+		  data: downloadLink.safeAccess(x => x.getAttribute('href')) ?? '',
+		  name: filename?.fixTitleHyphen() ?? ''
 		});
 	  } else if (x.classList.contains('lecture-attachment-type-pdf_embed')) {
-		const firstId = this._html.querySelector('#fedora-keys').getAttribute('data-filepicker');
-		const secondId = x.querySelector('.wrapper > div').getAttribute('data-pdfviewer-id');
-		const filename = x.querySelector('.label').textContent.trim();
+		const firstId = this._html.querySelector('#fedora-keys').safeAccess(x => x.getAttribute('data-filepicker'));
+		const secondId = x.querySelector('.wrapper > div').safeAccess(x => x.getAttribute('data-pdfviewer-id'));
+		const filename = x.querySelector('.label').safeAccess(x => x.textContent.trim());
 
 		attachments.push({
 		  type: 'pdf',
-		  data: `https://cdn.filestackcontent.com/${firstId}/${secondId}`,
-		  name: filename
+		  data: `https://cdn.filestackcontent.com/${firstId ?? ''}/${secondId ?? ''}`,
+		  name: filename ?? ''
 		});
 	  }
 	});
@@ -140,27 +152,26 @@ export class VideoParser extends TypeParser {
   }
 
   override async parse() {
-	const lectureId = this._html.querySelector('#lecture_heading').getAttribute('data-lecture-id');
-	const videoTitle = this._html.querySelector('#lecture_heading').textContent.trim().fixTitleHyphen();
-	const courseSections = this._html.querySelectorAll('.course-section');
+	const lectureId = this._html.querySelector('#lecture_heading').safeAccess(x => x.getAttribute('data-lecture-id'));
+	const videoTitle = this._html.querySelector('#lecture_heading').safeAccess(x => x.textContent.trim().fixTitleHyphen());
+	const courseSection = this._html.querySelectorAll('.course-section').safeAccess(x => x.find(x => x.querySelector(`#sidebar_link_${lectureId}`) !== undefined));
 
-	const courseSection = courseSections.find(x => x.querySelector(`#sidebar_link_${lectureId}`) !== undefined);
-	const initialCourseSectionHeading = courseSection.querySelector('.section-title').textContent.trim();
-	const courseSectionHeading = /(.+)\s\(\d+m\)/gmi.exec(initialCourseSectionHeading)[1];
+	const initialCourseSectionHeading = courseSection.querySelector('.section-title').safeAccess(x => x.textContent.trim());
+	const courseSectionHeading = /(.+)\s\(\d+m\)/gmi.exec(initialCourseSectionHeading ?? '');
 
 	const wistiaId = this.getVideo();
 	const attachments = this.getAttachments();
 
-	const courseTitle = this._html.querySelector('.course-sidebar-head > h2').textContent;
+	const courseTitle = this._html.querySelector('.course-sidebar-head > h2').safeAccess(x => x.textContent);
 
 	return [
 	  {
 		nextUrl: wistiaId ? `https://fast.wistia.com/embed/medias/${wistiaId}.json` : null,
 		nextType: 'end',
 		extraData: {
-		  courseTitle,
-		  courseSectionHeading,
-		  videoTitle,
+		  courseTitle: courseTitle ?? '',
+		  courseSectionHeading: courseSectionHeading.length >= 2 ? courseSectionHeading[1] : '',
+		  videoTitle: videoTitle ?? '',
 		  attachments
 		}
 	  }

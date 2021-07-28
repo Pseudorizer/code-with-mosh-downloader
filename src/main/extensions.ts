@@ -1,4 +1,4 @@
-import {parse} from 'node-html-parser';
+import {HTMLElement, parse} from 'node-html-parser';
 
 export default function defineExtensions() {
   Object.assign(String.prototype, {
@@ -11,12 +11,6 @@ export default function defineExtensions() {
   });
 
   Object.assign(HTMLElement.prototype, {
-	safeAccess<T>(func: (htmlElement: HTMLElement) => T) {
-	  return !this ? null : func(this);
-	}
-  });
-
-  Object.assign(Element.prototype, {
 	safeAccess<T>(func: (htmlElement: HTMLElement) => T) {
 	  return !this ? null : func(this);
 	}

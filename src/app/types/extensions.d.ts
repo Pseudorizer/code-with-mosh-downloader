@@ -9,10 +9,6 @@ declare global {
   interface Array {
     safeAccess<T>(func: (htmlElement: HTMLElement[]) => T): T | null
   }
-
-  interface Element {
-    safeAccess<T>(func: (htmlElement: HTMLElement) => T): T | null
-  }
 }
 
 declare module 'node-html-parser' {

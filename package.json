@@ -1,0 +1,16 @@
+{
+  "name": "code-with-mosh-downloader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^16.10.3",
+    "got": "^11.8.2",
+    "prompts": "^2.4.1",
+    "typescript": "^4.4.3"
+  }
+}
